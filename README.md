@@ -18,7 +18,7 @@ A local video workflow for Codex: describe the project, style and feeling in a c
 
 - Persistent project identity in PROJECT.md, STYLE.md and LEARNINGS.md, backed by typed JSON.
 - Per-video drafts, timelines, history and versioned exports.
-- Arabic text, local fonts, clip trims/order/mute, timed text and three text motion modes.
+- Arabic text, local fonts, clip trims/order/mute, timed text and six text motion presets (plain, slide, paper, fade, pop, focus).
 - Local Remotion and Hyperframes 1080p rendering, plus a basic 720p renderer.
 - Optional local full-audio speech transcription on Apple Silicon.
 - Imported voice-over or music with trim, offset, gain and source-audio controls.
@@ -139,3 +139,18 @@ The render tests need FFmpeg, fonts and installed browser/runtime dependencies. 
 ## Ownership
 
 Copyright © 2026 **Sadeq Ammar**. Original application/workflow rights are reserved; see COPYRIGHT. Public source availability does not grant an open-source license. Dependencies retain their own licenses in third-party/ and their installed distributions.
+
+## Editing surface and local selfie backgrounds (0.13)
+
+The timeline sits directly below the preview. Click its ruler to seek, zoom for small cuts, use S to split at the playhead, duplicate/reorder clips and apply six text presets or top/middle/lower positions. Changes preview immediately and stay in the current independent work. Split preserves the total source range and clips text timing into each resulting segment. Each resulting clip has its own animation envelope. The save indicator shows unsaved changes; save before switching/exporting. Extra project works and audio/review panels stay below the editor.
+
+Run `./setup-cutout.command` once (Python 3.10+ and a compatible MediaPipe wheel). It installs pinned optional packages in .venv-cutout and downloads the official SelfieSegmenter float16 version 1 model from Google, verified with SHA-256. No footage is uploaded. Select a selfie clip → تعديل المقطع → عزل الشخص → blur or a solid background color → process. The operation creates a derived MP4, preserves the selected original audio/range and replaces just that clip in its open work. Undo recovers the original edit. Derived sources stay in the shared library during rescans and remain private.
+
+Current cutout scope: person segmentation, SDR, 30 fps, up to 120 seconds per selected trim, ≤720p/1280-long-edge processing, blur or solid color. Hair, motion blur and occlusion need visual review. No transparent layer, photo/video replacement background or general object matting is connected. The 1080p render can use the result but cannot recover processing resolution. Failed processing or a stale work/source leaves the timeline unchanged.
+
+The calling chat can use `workflow.py cutout --project ID --work WORK_ID --clip CLIP_ID --base-fingerprint TOKEN --mode color --color '#172a25'` with fresh context tokens; query status, then refresh context. Optional environment overrides: SADEQ_CUTOUT_PYTHON and SADEQ_CUTOUT_MODEL. Never infer API readiness from a website login.
+
+To verify real inference locally, supply an explicitly chosen test portrait:
+`SADEQ_CUTOUT_TEST_IMAGE=/absolute/test-portrait.jpg python3 -m unittest test_cutout -v`
+
+This package can be set up on another compatible local machine; its Codex skill needs that machine's service, files, models and fonts. It does not connect every chat platform or video editor automatically.

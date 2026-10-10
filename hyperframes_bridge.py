@@ -33,6 +33,7 @@ def compile_project(p, out, probe, command, font):
     shutil.copy2(font,folder/'brand.ttf')  # private local render asset; excluded from distribution
     shutil.copy2(ROOT/'node_modules/gsap/dist/gsap.min.js',folder/'gsap.js')
     shutil.copy2(ROOT/'motion.css',folder/'motion.css')
+    shutil.copy2(ROOT/'motion.js',folder/'motion.js')
     for i,c in enumerate(p['timeline']):
         a=assets[c['asset']]; meta=probe(Path(a['path'])); duration=c['end']-c['start']
         if meta['hdr']: raise ValueError('المقطع HDR؛ يحتاج تحويل Apple إلى SDR حتى نحافظ على ألوانه')
@@ -62,20 +63,17 @@ def compile_project(p, out, probe, command, font):
     script='''const tl=gsap.timeline({paused:true});
 tl.to({}, {duration:DURATION});
 for(const c of CAPTIONS){
- const el=document.getElementById(c.id), paper=c.mode==='paper', plain=c.mode==='plain';
- const hook=el.classList.contains('academy-hook');
- const enter=hook?Math.min(.32,c.duration/3):plain?Math.min(.2,c.duration):Math.min(.38,c.duration/3);
- tl.fromTo(el,{opacity:0,y:plain?0:SIZE*.5,scale:hook?.9:paper?.94:1,rotation:paper?-2:0},
- {opacity:1,y:0,scale:1,rotation:0,duration:enter,ease:hook?'back.out(1.3)':plain?'none':'power2.out',immediateRender:false},c.start);
- if(!plain){const exit=Math.min(.24,c.duration/3);tl.to(el,{opacity:0,y:-SIZE*.16,duration:exit,ease:'power2.in'},c.start+c.duration-exit);}
+ const el=document.getElementById(c.id), clock={time:0};
+ const paint=()=>{const s=StudioMotion.state(clock.time,c.duration,c.mode);el.style.opacity=s.opacity;el.style.transform=`translateY(${s.y}em) scale(${s.scale}) rotate(${s.rotate}deg)`;el.style.filter=`blur(${s.blur}em)`;};
+ tl.fromTo(clock,{time:0},{time:c.duration,duration:c.duration,ease:'none',immediateRender:false,onUpdate:paint},c.start);
 }
-window.__timelines={sadeq:tl};'''.replace('DURATION',str(total)).replace('CAPTIONS',json.dumps(timings)).replace('SIZE',str(size))
+window.__timelines={sadeq:tl};'''.replace('DURATION',str(total)).replace('CAPTIONS',json.dumps(timings))
     css=f'''@font-face{{font-family:Brand;src:url(brand.ttf)}}*{{box-sizing:border-box}}html,body{{margin:0;background:black}}#stage{{position:relative;width:{w}px;height:{h}px;overflow:hidden}}.footage{{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:0}}.caption{{position:absolute;left:7%;right:12%;font:{size}px/1.45 Brand;direction:rtl;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere;text-shadow:0 2px 8px #000,0 0 3px #000;color:{light};--motion-accent:{accent};opacity:0;z-index:1}}.caption[data-motion="paper"]{{color:#211d19}}'''
     if academy:
         css+="@font-face{font-family:Brand;src:url(brand.ttf);font-weight:100 900}"
         dark=min(colors,key=lum) if colors else '#2B0710'
         css+=f""".caption{{left:8%;right:12%;font-size:68px;font-weight:750;line-height:1.35;color:#fff;text-shadow:0 3px 12px #000,0 0 5px #000;--brand-dark:{dark}}}.caption:after{{content:'';display:block;width:84px;height:8px;border-radius:4px;background:var(--brand-dark);box-shadow:0 0 0 1px #ffffff80;margin:12px auto 0}}.caption.academy-hook{{font-size:88px;font-weight:850;line-height:1.4}}.academy-hook:after{{display:none}}.academy-tag{{display:table;margin:0 auto 16px;padding:4px 18px;background:var(--brand-dark);color:#fff;border:1px solid #ffffff60;border-radius:8px;font-size:26px;font-weight:600;text-shadow:none}}.hook-accent{{display:inline-block;background:var(--brand-dark);padding:0 18px 10px;border-radius:12px;border-bottom:5px solid {light};text-shadow:none}}"""
-    composition=f'<!doctype html><html lang="ar"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'"><link rel="stylesheet" href="motion.css"><style>{css}</style></head><body><div id="stage" data-composition-id="sadeq" data-start="0" data-duration="{total}" data-width="{w}" data-height="{h}" data-fps="30">'+''.join(videos+captions)+f'</div><script src="gsap.js"></script><script>{script}</script></body></html>'
+    composition=f'<!doctype html><html lang="ar"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'"><link rel="stylesheet" href="motion.css"><style>{css}</style></head><body><div id="stage" data-composition-id="sadeq" data-start="0" data-duration="{total}" data-width="{w}" data-height="{h}" data-fps="30">'+''.join(videos+captions)+f'</div><script src="motion.js"></script><script src="gsap.js"></script><script>{script}</script></body></html>'
     (folder/'index.html').write_text(composition)
     (folder/'manifest.json').write_text(json.dumps({'engine':'hyperframes','version':VERSION,'width':w,'height':h,'duration':total,'memory_revision':p.get('draft_memory_revision'),'approved_reference_ids':p.get('approved_reference_ids',[]),'source_clips':p['timeline']},ensure_ascii=False,indent=2))
     return folder,w,h,total

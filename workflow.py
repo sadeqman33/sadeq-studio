@@ -55,10 +55,12 @@ def normalize(text):return ' '.join(unicodedata.normalize('NFKC',text).casefold(
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--url',default='http://127.0.0.1:8794');sub=parser.add_subparsers(dest='action',required=True)
     sub.add_parser('projects')
-    for name in ['context','assets','status','analyze','voice-script','export','works','open-work','new-work','speech-picks']:
+    for name in ['context','assets','status','analyze','voice-script','export','works','open-work','new-work','speech-picks','cutout']:
         cmd=sub.add_parser(name);cmd.add_argument('--project',required=True)
         if name in ['context','analyze']:cmd.add_argument('--asset',action='append',default=[])
         if name=='speech-picks':cmd.add_argument('--asset',required=True)
+        if name=='cutout':
+            cmd.add_argument('--clip',required=True);cmd.add_argument('--work',required=True);cmd.add_argument('--base-fingerprint',required=True);cmd.add_argument('--mode',choices=['blur','color'],default='blur');cmd.add_argument('--color',default='#172a25')
         if name=='analyze':cmd.add_argument('--all',action='store_true')
         if name=='assets':cmd.add_argument('--query',default='');cmd.add_argument('--limit',type=int,default=30)
         if name=='voice-script':cmd.add_argument('--brief-file',type=Path,required=True)
@@ -73,6 +75,7 @@ def main(argv=None):
     else:
         chosen=client.resolve(args.project);pid=chosen['id']
         if args.action=='context':result=client.context(pid,args.asset)
+        elif args.action=='cutout':result=client.call('/api/cutout',{'id':pid,'work_id':args.work,'clip_id':args.clip,'base_fingerprint':args.base_fingerprint,'mode':args.mode,'color':args.color})
         elif args.action=='speech-picks':
             r=client.call('/api/video/'+pid+'/'+args.asset);result={'project_id':pid,'asset_id':args.asset,'stale':r['stale'],'source_fingerprint':r['source_fingerprint'],'speech_picks':r.get('speech_picks')}
         elif args.action=='works':

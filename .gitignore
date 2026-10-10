@@ -23,3 +23,8 @@ export-frame.jpg
 *.otf
 *.zip
 *.bundle
+
+# Downloaded local segmentation models
+models/
+*.tflite
+.cache-cutout/

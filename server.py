@@ -8,6 +8,7 @@ import memory_documents as md
 import hyperframes_bridge as hf
 import remotion_bridge as rm
 import speech_edit as se
+import cutout as co
 import voiceover as vo
 import typography as typo
 import video_works as works
@@ -152,7 +153,7 @@ def validate_timeline(p,tl):
     if not isinstance(tl,list) or len(tl)>100: raise ValueError('التايم لاين غير صالح')
     assets={a['id']:a for a in p['assets']}
     for c in tl:
-        if c.get('motion','inherit') not in ['inherit','plain','kinetic','paper']: raise ValueError('حركة النص غير صالحة')
+        if c.get('motion','inherit') not in ['inherit','plain','kinetic','paper','fade','pop','blur']: raise ValueError('حركة النص غير صالحة')
         if c.get('asset') not in assets: raise ValueError('مقطع مو مربوط بالمشروع')
         a=assets[c['asset']]; meta=probe(Path(a['path'])); a.update(meta)
         for k in ('start','end'): c[k]=float(c[k])
@@ -178,7 +179,7 @@ def run_job(pid,kind,fn):
 PROFILE_SCHEMA={'type':'object','properties':{k:({'type':'array','items':{'type':'string'}} if k in ['colors','visual_rules','ideas','facts','uncertainties','evidence'] else {'type':'string'}) for k in DEFAULT},'required':list(DEFAULT),'additionalProperties':False}
 PLAN_SCHEMA={'type':'object','properties':{'reason':{'type':'string'},'clips':{'type':'array','items':{'type':'object','properties':{'asset':{'type':'string'},'start':{'type':'number'},'end':{'type':'number'},'text':{'type':'string'}},'required':['asset','start','end','text'],'additionalProperties':False}}},'required':['reason','clips'],'additionalProperties':False}
 PRODUCTION_SCHEMA=copy.deepcopy(PLAN_SCHEMA)
-PRODUCTION_SCHEMA['properties']['clips']['items']['properties'].update({'motion':{'type':'string','enum':['inherit','plain','kinetic','paper']},'textY':{'type':'number'},'textStart':{'type':'number'},'textEnd':{'type':'number'}})
+PRODUCTION_SCHEMA['properties']['clips']['items']['properties'].update({'motion':{'type':'string','enum':['inherit','plain','kinetic','paper','fade','pop','blur']},'textY':{'type':'number'},'textStart':{'type':'number'},'textEnd':{'type':'number'}})
 PRODUCTION_SCHEMA['properties']['clips']['items']['required']+=['motion','textY','textStart','textEnd']
 def doc_text(f):
     if f.suffix.lower()=='.pdf':
@@ -353,7 +354,7 @@ def draft(pid,request,j,ids,production=False):
     j.pop('prefix',None); p=project(pid); selected=[a for a in p['assets'] if a['id'] in ids]
     text,meta,frames=draft_context(p,j,selected)
     production_engine=p.get('renderer') if p.get('renderer') in ['hyperframes','remotion'] else 'hyperframes'
-    production_rules=(f'\nRender path is local {production_engine} 1080p. Shape the creative sequence around the emotional effect requested in the brief, while respecting saved brand identity and approved aesthetic direction. Do not reduce the brief to generic promotional overlays; use only supported source footage and text controls. Plan restrained, readable timed text layers. motion chooses plain/kinetic/paper or inherit. textY 15-75 percent: protect faces and existing text. textStart/textEnd are relative to each trimmed clip: 0 <= textStart < textEnd <= end-start. Keep text <=90 characters and 1-2 short lines. Use meaningful phrases; never claim unknown offers, names, course prices or outcomes. Preserve coherent original speech: choose full short phrases using saved ASR timecodes, without pretending the ASR is verified. If source speech already explains the idea, support it instead of contradicting it. No music/TTS or generated image assets.\n' if production else '')
+    production_rules=(f'\nRender path is local {production_engine} 1080p. Shape the creative sequence around the emotional effect requested in the brief, while respecting saved brand identity and approved aesthetic direction. Do not reduce the brief to generic promotional overlays; use only supported source footage and text controls. Plan restrained, readable timed text layers. motion chooses plain/kinetic/paper/fade/pop/blur or inherit. textY 15-75 percent: protect faces and existing text. textStart/textEnd are relative to each trimmed clip: 0 <= textStart < textEnd <= end-start. Keep text <=90 characters and 1-2 short lines. Use meaningful phrases; never claim unknown offers, names, course prices or outcomes. Preserve coherent original speech: choose full short phrases using saved ASR timecodes, without pretending the ASR is verified. If source speech already explains the idea, support it instead of contradicting it. No music/TTS or generated image assets.\n' if production else '')
     result=ask_agent(pid,RULES+'\n'+se.RULES+production_rules+'\nBuild an editable rough cut using ONLY supplied asset ids. Use short accurate promotional overlay text, not a claimed transcript. Choose in/out within durations. No invented voiceovers or generated scenes. Target 10-30 seconds. Saved motion_style controls overlay rendering: plain=quiet text, kinetic=restrained entrance/hold/exit, paper=text card only; never imply generated cutout B-roll or continuous scene morphs. Write short overlays readable with that mode. This is a visual rough cut; preserve original audio.\nProfile: '+json.dumps(p['profile'],ensure_ascii=False)+'\nIraqi audience and objective: '+json.dumps(iq.market(p.get('market')),ensure_ascii=False)+'\nLatest review suggestions (hypotheses only): '+json.dumps(p.get('reviews',[])[-1].get('fixes',[]) if p.get('reviews') else [],ensure_ascii=False)+'\nRequest: '+request+'\nSaved source context: '+text+'\nAssets: '+json.dumps(meta,ensure_ascii=False),(PRODUCTION_SCHEMA if production else PLAN_SCHEMA),frames,j)
     if any(c.get('asset') not in ids for c in result['clips']): raise ValueError('المسودة اقترحت مقطع مو مختار؛ المرجع للستايل فقط')
     tl=[{**c,'id':uuid.uuid4().hex[:8],'mute':False,'motion':c.get('motion','inherit')} for c in result['clips']]
@@ -383,6 +384,31 @@ def import_voiceover(pid,payload,j):
         v=vo.settings(p); v.update(asset=asset['id'],enabled=True,trimStart=0,trimEnd=asset['duration'],offset=0)
         p['voiceover']=vo.settings(p,v); save(p)
     j['completion_message']='التعليق الصوتي جاهز للتعديل والمعاينة ✅'
+
+def prepare_cutout(p,d):
+    if d.get('work_id')!=p.get('active_work_id') or d.get('base_fingerprint')!=edit_fingerprint(p):raise ValueError('المسودة تغيّرت؛ احفظها وافتح المقطع من جديد')
+    c=next((c for c in p['timeline'] if c['id']==d.get('clip_id')),None)
+    if not c:raise ValueError('اختار مقطع من التايم لاين')
+    opt=co.options(d.get('mode'),d.get('color'))
+    if not co.ready():raise ValueError('جهّز عزل الخلفية عبر setup-cutout.command أولاً')
+    if c['end']-c['start']>120:raise ValueError('العزل لكل جزء لحد دقيقتين؛ قسّم المقطع أولاً')
+    a=next(a for a in p['assets'] if a['id']==c['asset']);source=vl.fingerprint(a)
+    return {'clip':copy.deepcopy(c),'asset':copy.deepcopy(a),'source_fingerprint':source,'work_id':p['active_work_id'],'base_fingerprint':edit_fingerprint(p),**opt}
+
+def apply_cutout(pid,spec,j):
+    out=DATA/pid/'derived'/uuid.uuid4().hex[:16];a=spec['asset'];c=spec['clip'];j['clip_id']=c['id'];j['work_id']=spec['work_id']
+    processed,meta=co.process(a,c['start'],c['end'],out,spec['mode'],spec['color'],probe,FFMPEG,j)
+    with LOCK:
+        p=project(pid)
+        if p.get('active_work_id')!=spec['work_id'] or edit_fingerprint(p)!=spec['base_fingerprint'] or vl.fingerprint(a)!=spec['source_fingerprint']:raise ValueError('المصدر أو المسودة تغيّرت أثناء العزل؛ ما بدّلنا التايم لاين')
+        current=next((x for x in p['timeline'] if x['id']==c['id']),None)
+        if current!=c:raise ValueError('المقطع تغيّر؛ نسخة العزل ما انطبّقت')
+        history(p);aid=hashlib.sha256(str(processed).encode()).hexdigest()[:16]
+        p['assets'].append({'id':aid,'path':str(processed),'name':Path(a['name']).stem+(' · خلفية مموهة' if spec['mode']=='blur' else ' · عزل الشخص')+'.mp4','reference':False,'derived':True,'derived_from':a['id'],'source_start':c['start'],'source_end':c['end'],'source_fingerprint':spec['source_fingerprint'],'effect':{'kind':'selfie_cutout','engine':co.VERSION,'mode':spec['mode'],'color':spec['color']},**meta})
+        current.update(asset=aid,start=0,end=min(c['end']-c['start'],meta['duration']))
+        if 'textEnd' in current:current['textEnd']=min(current['textEnd'],current['end'])
+        save(p)
+    j['completion_message']='نسخة العزل جاهزة بالتايم لاين؛ الأصل محفوظ، وتگدر تتراجع ✅'
 
 def command(cmd,timeout=180):
     r=subprocess.run(cmd,capture_output=True,text=True,timeout=timeout)
@@ -414,7 +440,7 @@ def export(pid,j):
         return
     j['message']='أجهّز النص العربي…'
     command(['node',str(ROOT/'caption.cjs'),str(out/'edit.json'),str(out)],120)
-    if any(c.get('text') and motion_mode(c,p) in ['kinetic','paper'] for c in tl):
+    if any(c.get('text') and motion_mode(c,p) in ['kinetic','paper','fade','pop','blur'] for c in tl):
         j['message']='أرسم حركة النص إطار بإطار…'
         command(['node',str(ROOT/'motion.cjs'),str(out/'edit.json'),str(out)],max(180,math.ceil(sum(c['end']-c['start'] for c in tl)*20)))
     w,h=(720,1280) if p.get('ratio','9:16')=='9:16' else (1280,720)
@@ -526,7 +552,7 @@ class H(BaseHTTPRequestHandler):
         try:
             path=unquote(urlparse(self.path).path); parts=path.strip('/').split('/')
             if path=='/api/projects': return self.send_json([{'id':p['id'],'name':p['name'],'source':p['source'],'analysis_at':p['analysis_at']} for f in DATA.glob('*/project.json') for p in [read(f)]])
-            if path=='/api/health': return self.send_json({'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
+            if path=='/api/health': return self.send_json({'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'cutout':co.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
             if len(parts)==3 and parts[:2]==['api','memory-documents']:
                 p=project(parts[2]); return self.send_json({'revision':pm.memory(p)['revision'],'warnings':p.get('memory_document_warnings',[]),'files':[{'name':name,'text':(DATA/p['id']/name).read_text()} for name in md.FILES if (DATA/p['id']/name).exists()]})
             if len(parts)==3 and parts[0]=='memory-file' and parts[2] in md.FILES:
@@ -585,6 +611,10 @@ class H(BaseHTTPRequestHandler):
                 r=subprocess.run(['osascript','-e',script],capture_output=True,text=True,timeout=120)
                 return self.send_json({'path':r.stdout.strip() if r.returncode==0 else ''})
             pid=d['id']; p=project(pid)
+            if path=='/api/cutout':
+                with LOCK:
+                    p=project(pid);spec=prepare_cutout(p,d)
+                    return self.send_json(run_job(pid,'cutout',lambda j:apply_cutout(pid,spec,j)))
             if path=='/api/voiceover-script': return self.send_json(run_job(pid,'voiceover-script',lambda j:prepare_voiceover(pid,str(d.get('request',''))[:2000],j)))
             if path=='/api/voiceover-import': return self.send_json(run_job(pid,'voiceover-import',lambda j:import_voiceover(pid,d,j)))
             if path=='/api/analyze':
@@ -626,7 +656,7 @@ class H(BaseHTTPRequestHandler):
                     if renderer=='basic' and any('textStart' in c or 'textEnd' in c for c in d['timeline']): raise ValueError('توقيت طبقة النص يحتاج محرك 1080')
                     p['renderer']=renderer
                     mode=d.get('motion_style',p.get('motion_style','plain'))
-                    if mode not in ['plain','kinetic','paper']: raise ValueError('حركة النص غير صالحة')
+                    if mode not in ['plain','kinetic','paper','fade','pop','blur']: raise ValueError('حركة النص غير صالحة')
                     p['motion_style']=mode
                     p['market']=iq.market(d.get('market',p.get('market'))); p['timeline']=validate_timeline(p,d['timeline']); p['ratio']=d.get('ratio','9:16')
                     if p['ratio'] not in ['9:16','16:9']: raise ValueError('نسبة غير صالحة')
@@ -671,7 +701,8 @@ class H(BaseHTTPRequestHandler):
                     old_assets={a['id']:a for a in p['assets']}
                     old_assets.update({a['id']:a for a in scan(s)}); p['assets']=list(old_assets.values()); p.setdefault('media_sources',[]).append(str(s))
                 elif path=='/api/rescan':
-                    found={a['id']:a for s in [p['source']]+p.get('media_sources',[]) for a in scan(Path(s))}
+                    found={a['id']:a for a in p['assets'] if a.get('derived') and Path(a['path']).is_file()}
+                    found.update({a['id']:a for s in [p['source']]+p.get('media_sources',[]) for a in scan(Path(s))})
                     if any(c['asset'] not in found for c in p['timeline']): raise ValueError('بعض مقاطع التايم لاين مو موجودة؛ تأكد الـSSD مربوط')
                     p['assets']=list(found.values())
                 else: return self.send_json({'error':'غير موجود'},404)
