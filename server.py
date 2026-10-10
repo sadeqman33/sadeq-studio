@@ -6,6 +6,7 @@ import video_library as vl
 import project_memory as pm
 import memory_documents as md
 import hyperframes_bridge as hf
+import remotion_bridge as rm
 import voiceover as vo
 import typography as typo
 import video_works as works
@@ -132,9 +133,10 @@ def accept_agent_plan(d):
         clips=d.get('clips')
         if not isinstance(clips,list) or not clips or any(not isinstance(c,dict) or c.get('asset') not in ids for c in clips): raise ValueError('الخطة لازم تستخدم اللقطات المختارة فقط')
         renderer=d.get('renderer','hyperframes'); ratio=d.get('ratio',p.get('ratio','9:16'))
-        if renderer not in ['basic','hyperframes'] or ratio not in ['9:16','16:9']: raise ValueError('محرك الفيديو أو النسبة غير صالحة')
+        if renderer not in ['basic','hyperframes','remotion'] or ratio not in ['9:16','16:9']: raise ValueError('محرك الفيديو أو النسبة غير صالحة')
         if renderer=='basic' and any('textStart' in c or 'textEnd' in c for c in clips): raise ValueError('توقيت النص يحتاج محرك 1080')
         if renderer=='hyperframes' and not hf.ready(): raise ValueError('محرك الفيديو يحتاج إعداد Hyperframes')
+        if renderer=='remotion' and not rm.ready(): raise ValueError('محرك الفيديو يحتاج إعداد Remotion')
         allowed={'asset','start','end','text','motion','textY','textStart','textEnd','mute'}
         if any(set(c)-allowed for c in clips): raise ValueError('الخطة تحتوي إعدادات غير مدعومة')
         tl=validate_timeline(p,[{**copy.deepcopy(c),'id':uuid.uuid4().hex[:8]} for c in clips])
@@ -348,15 +350,16 @@ def draft(pid,request,j,ids,production=False):
             j['prefix']=f'أفهم المقطع أو المرجع الجديد فقط {i+1} / {len(needed)} · '+a['name']; analyze_one(pid,a,j)
     j.pop('prefix',None); p=project(pid); selected=[a for a in p['assets'] if a['id'] in ids]
     text,meta,frames=draft_context(p,j,selected)
-    production_rules=('\nRender path is local Hyperframes 1080p. Shape the creative sequence around the emotional effect requested in the brief, while respecting saved brand identity and approved aesthetic direction. Do not reduce the brief to generic promotional overlays; use only supported source footage and text controls. Plan restrained, readable timed text layers. motion chooses plain/kinetic/paper or inherit. textY 15-75 percent: protect faces and existing text. textStart/textEnd are relative to each trimmed clip: 0 <= textStart < textEnd <= end-start. Keep text <=90 characters and 1-2 short lines. Use meaningful phrases; never claim unknown offers, names, course prices or outcomes. Preserve coherent original speech: choose full short phrases using saved ASR timecodes, without pretending the ASR is verified. If source speech already explains the idea, support it instead of contradicting it. No music/TTS or generated image assets.\n' if production else '')
+    production_engine=p.get('renderer') if p.get('renderer') in ['hyperframes','remotion'] else 'hyperframes'
+    production_rules=(f'\nRender path is local {production_engine} 1080p. Shape the creative sequence around the emotional effect requested in the brief, while respecting saved brand identity and approved aesthetic direction. Do not reduce the brief to generic promotional overlays; use only supported source footage and text controls. Plan restrained, readable timed text layers. motion chooses plain/kinetic/paper or inherit. textY 15-75 percent: protect faces and existing text. textStart/textEnd are relative to each trimmed clip: 0 <= textStart < textEnd <= end-start. Keep text <=90 characters and 1-2 short lines. Use meaningful phrases; never claim unknown offers, names, course prices or outcomes. Preserve coherent original speech: choose full short phrases using saved ASR timecodes, without pretending the ASR is verified. If source speech already explains the idea, support it instead of contradicting it. No music/TTS or generated image assets.\n' if production else '')
     result=ask_agent(pid,RULES+production_rules+'\nBuild an editable rough cut using ONLY supplied asset ids. Use short accurate promotional overlay text, not a claimed transcript. Choose in/out within durations. No invented voiceovers or generated scenes. Target 10-30 seconds. Saved motion_style controls overlay rendering: plain=quiet text, kinetic=restrained entrance/hold/exit, paper=text card only; never imply generated cutout B-roll or continuous scene morphs. Write short overlays readable with that mode. This is a visual rough cut; preserve original audio.\nProfile: '+json.dumps(p['profile'],ensure_ascii=False)+'\nIraqi audience and objective: '+json.dumps(iq.market(p.get('market')),ensure_ascii=False)+'\nLatest review suggestions (hypotheses only): '+json.dumps(p.get('reviews',[])[-1].get('fixes',[]) if p.get('reviews') else [],ensure_ascii=False)+'\nRequest: '+request+'\nSaved source context: '+text+'\nAssets: '+json.dumps(meta,ensure_ascii=False),(PRODUCTION_SCHEMA if production else PLAN_SCHEMA),frames,j)
     if any(c.get('asset') not in ids for c in result['clips']): raise ValueError('المسودة اقترحت مقطع مو مختار؛ المرجع للستايل فقط')
     tl=[{**c,'id':uuid.uuid4().hex[:8],'mute':False,'motion':c.get('motion','inherit')} for c in result['clips']]
     with LOCK:
         p=project(pid); validate_timeline(p,tl); history(p); p['timeline']=tl; p['draft_reason']=result['reason']; p['draft_memory_revision']=pm.memory(p)['revision']
-        if production:p['renderer']='hyperframes'
+        if production:p['renderer']=production_engine
         works.begin(p,DATA/pid,str(request or result['reason'])[:100]);save(p)
-        if production: p['renderer']='hyperframes'; save(p)
+        if production: p['renderer']=production_engine; save(p)
     j['completion_message']='المسودة جاهزة باستخدام ذاكرة '+p['name']+' ✅'
 def produce(pid,request,j,ids):
     draft(pid,request,j,ids,production=True)
@@ -397,13 +400,14 @@ def export(pid,j):
     if not font.exists(): raise ValueError('الخط المختار مو موجود')
     version=time.strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:4]; out=DATA/pid/'exports'/version; out.mkdir(parents=True)
     write(out/'edit.json',p)
-    if p.get('renderer')=='hyperframes':
-        w,h,expected=hf.render(p,out,probe,command,font,j)
+    if p.get('renderer') in ['hyperframes','remotion']:
+        engine=rm if p['renderer']=='remotion' else hf
+        w,h,expected=engine.render(p,out,probe,command,font,j)
         vo.mix_export(p,out,expected,FFMPEG,command,j,has_audio=probe(out/'final.mp4')['audio'])
         actual=probe(out/'final.mp4')
-        if abs(actual['duration']-expected)>.15: raise ValueError('توقيت ملف Hyperframes الناتج يحتاج مراجعة')
+        if abs(actual['duration']-expected)>.15: raise ValueError('توقيت ملف '+p['renderer']+' الناتج يحتاج مراجعة')
         with LOCK:
-            latest=project(pid); latest['exports'].append({'work_id':p.get('active_work_id'),'version':version,'duration':actual['duration'],'width':w,'height':h,'path':str(out/'final.mp4'),'at':time.time(),'edit_fingerprint':iq.fingerprint(p),'engine':'hyperframes','engine_version':hf.VERSION}); save(latest)
+            latest=project(pid); latest['exports'].append({'work_id':p.get('active_work_id'),'version':version,'duration':actual['duration'],'width':w,'height':h,'path':str(out/'final.mp4'),'at':time.time(),'edit_fingerprint':iq.fingerprint(p),'engine':p['renderer'],'engine_version':engine.VERSION}); save(latest)
         j['completion_message']='الفيديو جاهز بدقة 1080، والمسودة قابلة للتعديل ✅'
         return
     j['message']='أجهّز النص العربي…'
@@ -520,7 +524,7 @@ class H(BaseHTTPRequestHandler):
         try:
             path=unquote(urlparse(self.path).path); parts=path.strip('/').split('/')
             if path=='/api/projects': return self.send_json([{'id':p['id'],'name':p['name'],'source':p['source'],'analysis_at':p['analysis_at']} for f in DATA.glob('*/project.json') for p in [read(f)]])
-            if path=='/api/health': return self.send_json({'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
+            if path=='/api/health': return self.send_json({'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
             if len(parts)==3 and parts[:2]==['api','memory-documents']:
                 p=project(parts[2]); return self.send_json({'revision':pm.memory(p)['revision'],'warnings':p.get('memory_document_warnings',[]),'files':[{'name':name,'text':(DATA/p['id']/name).read_text()} for name in md.FILES if (DATA/p['id']/name).exists()]})
             if len(parts)==3 and parts[0]=='memory-file' and parts[2] in md.FILES:
@@ -615,7 +619,7 @@ class H(BaseHTTPRequestHandler):
                         if not value or len(value)>100:raise ValueError('اكتب اسم فيديو لحد 100 حرف')
                         if p.get('active_work_id'):works.find(p,p['active_work_id'])['title']=value
                     renderer=d.get('renderer',p.get('renderer','basic'))
-                    if renderer not in ['basic','hyperframes']: raise ValueError('محرك غير معروف')
+                    if renderer not in ['basic','hyperframes','remotion']: raise ValueError('محرك غير معروف')
                     if renderer=='basic' and any('textStart' in c or 'textEnd' in c for c in d['timeline']): raise ValueError('توقيت طبقة النص يحتاج محرك 1080')
                     p['renderer']=renderer
                     mode=d.get('motion_style',p.get('motion_style','plain'))
@@ -627,7 +631,7 @@ class H(BaseHTTPRequestHandler):
                     if not isinstance(colors,list) or len(colors)!=2 or any(not isinstance(c,str) or not re.fullmatch(r'#[a-fA-F0-9]{6}',c) for c in colors): raise ValueError('ألوان الهوية غير صالحة')
                     p['profile']['colors']=colors
                     p['typography']=typo.settings(d.get('typography',p.get('typography')))
-                    if p['typography']!={'font':'Hacen Beirut','style':'classic'} and renderer!='hyperframes': raise ValueError('اختيار الخط وستايل الأكاديمية يحتاج محرك 1080')
+                    if p['typography']!={'font':'Hacen Beirut','style':'classic'} and renderer not in ['hyperframes','remotion']: raise ValueError('اختيار الخط وستايل الأكاديمية يحتاج محرك 1080')
                     p['voiceover']=vo.settings(p,d.get('voiceover',p.get('voiceover',{})))
                     # Timeline saves never change project knowledge; use memory-save.
                 elif path=='/api/memory-save':

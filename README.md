@@ -19,7 +19,7 @@ A local video workflow for Codex: describe the project, style and feeling in a c
 - Persistent project identity in PROJECT.md, STYLE.md and LEARNINGS.md, backed by typed JSON.
 - Per-video drafts, timelines, history and versioned exports.
 - Arabic text, local fonts, clip trims/order/mute, timed text and three text motion modes.
-- Local Hyperframes 1080p rendering and a basic 720p renderer.
+- Local Remotion and Hyperframes 1080p rendering, plus a basic 720p renderer.
 - Optional local full-audio speech transcription on Apple Silicon.
 - Imported voice-over or music with trim, offset, gain and source-audio controls.
 - Iraqi creative review and manually recorded outcomes; editorial scores are not calibrated virality probabilities.
@@ -67,12 +67,22 @@ Set environment variables before starting the server:
 | SADEQ_FONT_HACEN | Font path used for the Hacen Beirut choice. |
 | SADEQ_FONT_ALEXANDRIA | Font path used for the Alexandria choice. |
 | SADEQ_NODE | Node executable for rendering. |
-| SADEQ_CHROME | Optional installed Chrome executable for basic text rendering. |
+| SADEQ_CHROME | Optional installed Chrome executable for basic text rendering and Remotion. |
 | SADEQ_PLAYWRIGHT | Optional installed Playwright module path; defaults to the npm dependency. |
 | SADEQ_ASR_PYTHON | Optional transcription environment's Python executable. |
 | SADEQ_ASR_MODEL | Local Whisper model snapshot folder. |
 
 For example, if your fonts have different filenames, point the two font variables to their actual local paths. Fonts must exist before using the corresponding typography choice.
+
+## Remotion renderer (0.11)
+
+Choose **Remotion · 1080** in the editor's render engine selector, save, then export. The calling agent may submit `renderer: "remotion"` in the same guarded plan schema. Timed text and typography edits retain your selected 1080p engine.
+
+Run `./setup-remotion.command` once to install pinned packages. Remotion 4.0.534, @remotion/bundler and @remotion/renderer use matching versions. Existing local Chrome is used when available; otherwise Remotion obtains its managed browser on first render.
+
+Our fixed React composition converts your independent timeline into local footage sequences and Arabic overlays. It shares the editor's deterministic text motion. Source trims/audio and mute stay in the local FFmpeg pipeline; imported voice/music are mixed afterwards. Editable JSON, React input props and render logs remain with each local export. Timings round cumulative boundaries to 30 fps (at most half a frame at a boundary); clips shorter than one frame are rejected. No arbitrary agent-written JSX, cloud rendering or generated footage is connected.
+
+Remotion has its **own license**, not an MIT license. Read [the upstream terms](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) before commercial use. A company license may be required depending on the organization. We preserve the license notice and do not sell or relicense Remotion itself. No license purchase or account connection is automated.
 
 ## Optional transcription
 

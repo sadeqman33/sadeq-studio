@@ -7,7 +7,9 @@
   "dependencies": {
     "hyperframes": "0.8.143 — Apache-2.0",
     "gsap": "3.14.2 — Standard no-charge license",
-    "playwright": "1.62.1 — Apache-2.0"
+    "playwright": "1.62.1 — Apache-2.0",
+    "remotion": "4.0.534 — Remotion License",
+    "react": "19.3.0 — MIT"
   },
   "private_content": "No project memory, footage, transcripts, exports, credentials or font files included."
 }

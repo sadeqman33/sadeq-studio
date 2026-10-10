@@ -1,6 +1,6 @@
 {
   "name": "sadeq-studio",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Project-aware agent video workflow and local Arabic timeline editor by Sadeq Ammar",
   "author": {
     "name": "Sadeq Ammar"
@@ -10,7 +10,7 @@
     "displayName": "Sadeq Studio",
     "developerName": "Sadeq Ammar",
     "shortDescription": "Project-aware video workflow",
-    "longDescription": "Local project memory, independent editable video timelines, Arabic captions and export. The calling Codex chat plans videos using saved identity and the requested feeling.",
+    "longDescription": "Local project memory, independent editable timelines, Arabic text and local Remotion/Hyperframes 1080p export. The calling Codex chat plans videos using saved identity and the requested feeling.",
     "category": "Productivity",
     "defaultPrompt": "سوّيلي فيديو من ذاكرة مشروعي والإحساس اللي أريده، وافتحه للتعديل اليدوي."
   }

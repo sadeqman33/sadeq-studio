@@ -40,7 +40,7 @@ class StudioClient:
             records.append({'asset':assets[aid],'cached_record':r['record'],'stale':r['stale'],'source_fingerprint':r['source_fingerprint']})
         return {'project_id':p['id'],'project_name':p['name'],'source':p['source'],
                 'active_work_id':p.get('active_work_id'),'video_works':p.get('work_list',[]),
-                'initialized':bool(p.get('analysis_at')),'identity':p['memory_view'],
+                'available_renderers':self.call('/api/health'),'initialized':bool(p.get('analysis_at')),'identity':p['memory_view'],
                 'memory_files':p['memory_files'],'memory_warnings':p.get('memory_document_warnings',[]),
                 'memory_revision':p['project_memory']['revision'],'base_fingerprint':result['edit_fingerprint'],
                 'timeline':p['timeline'],'voiceover':p['voiceover'],'typography':p.get('typography'),'ratio':p.get('ratio'),'renderer':p.get('renderer','basic'),

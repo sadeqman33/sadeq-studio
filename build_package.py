@@ -2,7 +2,7 @@
 import json,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent
-FILES=['build_package.py','AGENTS.md','.gitignore','server.py','app.js','index.html','style.css','caption.cjs','browser_runtime.cjs','start.command','README.md','COPYRIGHT','SOURCE.json','plugin.json','package.json','package-lock.json','requirements.txt','iraqi_review.py','video_library.py','speech_worker.py','requirements-transcription.txt','setup-transcription.command','logo.png','project_memory.py','motion.js','motion.css','motion.cjs','memory_documents.py','hyperframes_bridge.py','voiceover.py','workflow.py','typography.py','video_works.py','setup-hyperframes.command']
+FILES=['build_package.py','AGENTS.md','.gitignore','server.py','app.js','index.html','style.css','caption.cjs','browser_runtime.cjs','start.command','README.md','COPYRIGHT','SOURCE.json','plugin.json','package.json','package-lock.json','requirements.txt','iraqi_review.py','video_library.py','speech_worker.py','requirements-transcription.txt','setup-transcription.command','logo.png','project_memory.py','motion.js','motion.css','motion.cjs','memory_documents.py','hyperframes_bridge.py','voiceover.py','workflow.py','typography.py','video_works.py','setup-hyperframes.command','setup-remotion.command','remotion_bridge.py']
 def build():
     manifest=json.loads((ROOT/'plugin.json').read_text())
     overlay=json.loads((ROOT/'.codex-plugin/plugin.json').read_text())
@@ -10,7 +10,7 @@ def build():
     assert all(overlay[k]==manifest[k] for k in ['name','version','author'])
     assert overlay['interface']==manifest['extensions']['com.openai']['interface']
     files=[ROOT/n for n in FILES]+list(ROOT.glob('test_*.py'))
-    for folder in ['skills','third-party','.codex-plugin']:
+    for folder in ['skills','third-party','.codex-plugin','remotion']:
         files.extend(p for p in (ROOT/folder).rglob('*') if p.is_file())
     dist=ROOT/'dist';dist.mkdir(exist_ok=True)
     archive=dist/f"sadeq-studio-{manifest['version']}.zip"

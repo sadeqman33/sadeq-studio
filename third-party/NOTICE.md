@@ -5,6 +5,8 @@ Sadeq Studio original application code is by Sadeq Ammar. Dependencies are separ
 - Hyperframes 0.8.143 — HeyGen/contributors, Apache-2.0. https://github.com/heygen-com/hyperframes . License snapshot: Hyperframes-LICENSE.txt.
 - GSAP 3.14.2 — GreenSock/Webflow, Standard no-charge license. https://gsap.com/community/standard-license/ . License snapshot: GSAP-LICENSE.txt.
 - Playwright 1.62.1 — Microsoft, Apache-2.0. https://github.com/microsoft/playwright . License snapshot: Playwright-LICENSE.txt. Installed by npm; its distribution retains its notices.
+- Remotion 4.0.534 — Remotion AG, special Remotion License. https://github.com/remotion-dev/remotion . License snapshot: Remotion-LICENSE.md. Individuals, qualifying small organizations and evaluation uses are covered by its free tier; other organizations need a company license. This is a dependency used for rendering, not a relicensed framework.
+- React / React DOM 19.3.0 — Meta/contributors, MIT; notices are retained in npm distributions.
 - Optional speech: MLX Whisper and Silero VAD are installed separately by pip. Model weights are downloaded separately; their licenses remain with their upstream distributions.
 - Optional PDF reader: pypdf is installed separately by pip and retains its upstream license.
 
