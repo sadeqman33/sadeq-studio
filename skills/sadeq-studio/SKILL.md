@@ -36,3 +36,9 @@ Saved dialect/voice/delivery preferences are in context. Prepare proposed copy/d
 ## Remotion
 
 Read available_renderers in context. For a requested Remotion video, use renderer remotion in the existing data-only plan; do not submit JSX or external media URLs. Both 1080p engines support the saved timeline, typography and timed text. Manual changes stay in the active work. Remotion uses the original fixed local composition in remotion/; its license notice is in third-party/Remotion-LICENSE.md. Never buy or configure a paid license without separate user authorization.
+
+## Spoken takes and mistakes
+
+For spoken footage, use `speech-picks --project ID --asset ID` or the `speech_picks` attached to selected `context` evidence. This read-only tool reuses cached word/segment timecodes, identifies possible adjacent repetition, restart/correction cues and nearby look-alike takes. It does not listen to audio or prove a speaker error. New ASR records also retain recognizer metrics; those do not measure delivery or factual truth. Existing records work without re-transcription.
+
+Choose complete coherent phrases for the requested idea, compare surrounding context, and use a complete natural take rather than unfinished starts when meaning agrees. Preserve negation, conditions, names, prices and numbers; when repeated takes disagree, do not pick the fact by a fluency score. A deliberate pause, dialect marker or emphasis can belong in the edit. Never invent dialogue or glue isolated words/syllables into a new claim. Keep small breathing margins where source timing permits, verify/listen to important ambiguous cuts with available audio tools, and mark any listening still needed. Explain kept/dropped repeated takes in plan reason. Original footage stays read-only; each cut remains manually editable. Hypotheses never auto-delete source/timeline material.

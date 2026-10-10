@@ -13,11 +13,15 @@ def clean_segments(raw,offset,duration,intervals):
         overlap=sum(max(0,min(end,b)-max(start,a)) for a,b in intervals)
         bad=(float(seg.get('no_speech_prob',0))>.6 or float(seg.get('avg_logprob',0))<-1 or float(seg.get('compression_ratio',0))>2.4 or overlap<min(.15,(end-start)*.2))
         item={'start':round(start,3),'end':round(end,3),'text':text,'words':[],'needs_review':True}
+        item['asr_quality']={k:float(seg[k]) for k in ['avg_logprob','no_speech_prob','compression_ratio'] if k in seg and math.isfinite(float(seg[k]))}
         if bad:
             uncertain.append({**item,'reason':'ضعف دليل الكلام أو نتيجة التفريغ؛ ما نعتمد النص كحقيقة'}); continue
         for w in seg.get('words',[]):
             a=max(start,float(w['start'])+offset); b=min(end,float(w['end'])+offset)
-            if b>a: item['words'].append({'start':round(a,3),'end':round(b,3),'text':w['word'].strip()})
+            if b>a:
+                word={'start':round(a,3),'end':round(b,3),'text':w['word'].strip()}
+                if w.get('probability') is not None and math.isfinite(float(w['probability'])):word['asr_probability']=float(w['probability'])
+                item['words'].append(word)
         accepted.append(item)
     return accepted,uncertain
 

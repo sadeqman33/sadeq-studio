@@ -84,6 +84,14 @@ Our fixed React composition converts your independent timeline into local footag
 
 Remotion has its **own license**, not an MIT license. Read [the upstream terms](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md) before commercial use. A company license may be required depending on the organization. We preserve the license notice and do not sell or relicense Remotion itself. No license purchase or account connection is automated.
 
+## Speech take selection (0.12)
+
+The agent now receives source-timed speech candidates and possible repeated takes from each selected video's saved transcript. It compares whole phrases for the requested idea, prefers coherent attempts, and preserves meaning, negation, names, numbers and qualifiers. Suggested cuts use real source timecodes and remain editable. No source audio or existing timeline is deleted automatically.
+
+Open a library video's **≡ → اختيار محاولات الكلام** to compare candidates and seek to their original audio. From a chat, use `python3 workflow.py speech-picks --project ID --asset ID`; selected `context` evidence includes the same suggestions. Current cached transcripts work immediately without re-analysis. New transcription also saves recognizer metrics.
+
+The local detector flags possible textual repetition, correction/restart cues and unfinished endings. These are **ASR editing hypotheses**, not a guarantee of detecting stutters, determining a factual error, or measuring vocal performance. Word boundaries are used only when they match the transcript; otherwise it keeps segment ranges. Ambiguous factual differences require context/listening review. The calling agent makes the final editable plan; no second planning agent or private audio upload is added.
+
 ## Optional transcription
 
 On Apple Silicon, run `./setup-transcription.command`. It creates `.venv-asr`, installs the speech dependencies and downloads Whisper weights once. Subsequent transcription runs use local audio and cached model weights. Visual analysis sends selected frames and automatic transcript text to the user's Codex model; transcription alone does not upload audio to a video service.

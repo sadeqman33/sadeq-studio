@@ -7,6 +7,7 @@ import project_memory as pm
 import memory_documents as md
 import hyperframes_bridge as hf
 import remotion_bridge as rm
+import speech_edit as se
 import voiceover as vo
 import typography as typo
 import video_works as works
@@ -319,6 +320,7 @@ def draft_context(p,j,selected):
         record=vl.current_record(p,a)
         if record and record.get('transcript'):
             text+='\nSOURCE '+a['name']+' · automatic ASR, not reviewed:\n'+vl.transcript_text(record)[:30000]+'\nPer-video analysis: '+json.dumps(record.get('analysis'),ensure_ascii=False)
+            text+='\nSpeech take suggestions (hypotheses; source times): '+json.dumps(se.picks(record['transcript']),ensure_ascii=False)
         if i<8:
             cached=sorted(Path(record['folder']).glob('frame-*.jpg')) if record and record.get('folder') else []
             if cached: frames.extend([cached[0],cached[len(cached)//2]]); continue
@@ -352,7 +354,7 @@ def draft(pid,request,j,ids,production=False):
     text,meta,frames=draft_context(p,j,selected)
     production_engine=p.get('renderer') if p.get('renderer') in ['hyperframes','remotion'] else 'hyperframes'
     production_rules=(f'\nRender path is local {production_engine} 1080p. Shape the creative sequence around the emotional effect requested in the brief, while respecting saved brand identity and approved aesthetic direction. Do not reduce the brief to generic promotional overlays; use only supported source footage and text controls. Plan restrained, readable timed text layers. motion chooses plain/kinetic/paper or inherit. textY 15-75 percent: protect faces and existing text. textStart/textEnd are relative to each trimmed clip: 0 <= textStart < textEnd <= end-start. Keep text <=90 characters and 1-2 short lines. Use meaningful phrases; never claim unknown offers, names, course prices or outcomes. Preserve coherent original speech: choose full short phrases using saved ASR timecodes, without pretending the ASR is verified. If source speech already explains the idea, support it instead of contradicting it. No music/TTS or generated image assets.\n' if production else '')
-    result=ask_agent(pid,RULES+production_rules+'\nBuild an editable rough cut using ONLY supplied asset ids. Use short accurate promotional overlay text, not a claimed transcript. Choose in/out within durations. No invented voiceovers or generated scenes. Target 10-30 seconds. Saved motion_style controls overlay rendering: plain=quiet text, kinetic=restrained entrance/hold/exit, paper=text card only; never imply generated cutout B-roll or continuous scene morphs. Write short overlays readable with that mode. This is a visual rough cut; preserve original audio.\nProfile: '+json.dumps(p['profile'],ensure_ascii=False)+'\nIraqi audience and objective: '+json.dumps(iq.market(p.get('market')),ensure_ascii=False)+'\nLatest review suggestions (hypotheses only): '+json.dumps(p.get('reviews',[])[-1].get('fixes',[]) if p.get('reviews') else [],ensure_ascii=False)+'\nRequest: '+request+'\nSaved source context: '+text+'\nAssets: '+json.dumps(meta,ensure_ascii=False),(PRODUCTION_SCHEMA if production else PLAN_SCHEMA),frames,j)
+    result=ask_agent(pid,RULES+'\n'+se.RULES+production_rules+'\nBuild an editable rough cut using ONLY supplied asset ids. Use short accurate promotional overlay text, not a claimed transcript. Choose in/out within durations. No invented voiceovers or generated scenes. Target 10-30 seconds. Saved motion_style controls overlay rendering: plain=quiet text, kinetic=restrained entrance/hold/exit, paper=text card only; never imply generated cutout B-roll or continuous scene morphs. Write short overlays readable with that mode. This is a visual rough cut; preserve original audio.\nProfile: '+json.dumps(p['profile'],ensure_ascii=False)+'\nIraqi audience and objective: '+json.dumps(iq.market(p.get('market')),ensure_ascii=False)+'\nLatest review suggestions (hypotheses only): '+json.dumps(p.get('reviews',[])[-1].get('fixes',[]) if p.get('reviews') else [],ensure_ascii=False)+'\nRequest: '+request+'\nSaved source context: '+text+'\nAssets: '+json.dumps(meta,ensure_ascii=False),(PRODUCTION_SCHEMA if production else PLAN_SCHEMA),frames,j)
     if any(c.get('asset') not in ids for c in result['clips']): raise ValueError('المسودة اقترحت مقطع مو مختار؛ المرجع للستايل فقط')
     tl=[{**c,'id':uuid.uuid4().hex[:8],'mute':False,'motion':c.get('motion','inherit')} for c in result['clips']]
     with LOCK:
@@ -536,7 +538,8 @@ class H(BaseHTTPRequestHandler):
                 p=project(parts[2]); a=next((a for a in p['assets'] if a['id']==parts[3]),None)
                 if not a: raise ValueError('فيديو غير معروف')
                 r=p.get('video_analyses',{}).get(a['id'])
-                return self.send_json({'record':r,'stale':bool(r and not vl.current_record(p,a)),'source_fingerprint':vl.fingerprint(a)})
+                stale=bool(r and not vl.current_record(p,a))
+                return self.send_json({'record':r,'stale':stale,'source_fingerprint':vl.fingerprint(a),'speech_picks':se.picks(r.get('transcript')) if r and not stale else se.picks(None)})
             if len(parts)==4 and parts[0]=='transcript':
                 p=project(parts[1]); r=p.get('video_analyses',{}).get(parts[2]); name=parts[3]
                 if not r or name not in ['transcript.txt','transcript.srt'] or not r.get('folder'): raise ValueError('تفريغ غير موجود')
