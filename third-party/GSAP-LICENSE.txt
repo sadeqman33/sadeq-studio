@@ -1,0 +1,2 @@
+GSAP 3.14.2. Copyright 2025 GreenSock / Webflow. Standard no-charge license: https://gsap.com/community/standard-license/
+GSAP is installed separately through npm. Its distribution retains its copyright and license URL headers.

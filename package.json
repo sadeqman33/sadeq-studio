@@ -1,0 +1,21 @@
+{
+  "name": "sadeq-studio",
+  "version": "0.10.0",
+  "description": "Project-aware agent video workflow and local Arabic timeline editor by Sadeq Ammar",
+  "private": true,
+  "author": "Sadeq Ammar",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "start": "python3 server.py --port 8794",
+    "test": "python3 -m unittest discover -p \"test_*.py\"",
+    "check": "node --check app.js"
+  },
+  "dependencies": {
+    "gsap": "3.14.2",
+    "hyperframes": "0.8.143",
+    "playwright": "1.62.1"
+  }
+}

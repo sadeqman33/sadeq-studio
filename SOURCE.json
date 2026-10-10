@@ -1,0 +1,13 @@
+{
+  "name": "Sadeq Studio",
+  "author": "Sadeq Ammar",
+  "scope": "Standalone local app and project-aware agent workflow",
+  "application_origin": "Original standalone implementation developed for Sadeq",
+  "excluded": "Original external video plugin workflows, scripts, assets and packaging are not distributed here.",
+  "dependencies": {
+    "hyperframes": "0.8.143 — Apache-2.0",
+    "gsap": "3.14.2 — Standard no-charge license",
+    "playwright": "1.62.1 — Apache-2.0"
+  },
+  "private_content": "No project memory, footage, transcripts, exports, credentials or font files included."
+}

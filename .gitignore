@@ -1,0 +1,25 @@
+# Local projects and source media never belong in the public repository.
+data/
+.venv*/
+node_modules/
+__pycache__/
+*.py[cod]
+.DS_Store
+.env
+.env.*
+!.env.example
+dist/
+research/
+local-code-history/
+preview*.png
+export-frame.jpg
+*.mp4
+*.mov
+*.MOV
+*.mp3
+*.wav
+*.m4a
+*.ttf
+*.otf
+*.zip
+*.bundle
