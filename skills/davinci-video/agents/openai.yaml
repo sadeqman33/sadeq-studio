@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sadeq · DaVinci handoff"
+  short_description: "Verify an explicitly requested Resolve editing handoff"
+  default_prompt: "Use $davinci-video for my Sadeq Studio project, using its saved identity and current brief."
+policy:
+  allow_implicit_invocation: true

@@ -102,6 +102,24 @@ The plugin is **Sadeq Studio**, authored by **Sadeq Ammar**, with workflow tag `
 
 Before using an installed plugin with existing projects, save `~/.config/sadeq-studio/runtime.json` locally with `{"runtime_root": "/absolute/path/to/your/existing/studio"}`. Choose the app directory already holding your project data, not the installed plugin cache. Verify it contains workflow.py and server.py. The skill reads this configuration before using the existing local service; it never moves your projects or starts an empty duplicate registry. Runtime paths and private brand references remain outside the published package. After installing, open a new chat and select Sadeq Studio or invoke `$sadeq-studio`.
 
+The plugin contains 16 discoverable skills. The main skill routes a request through only the required stages, sharing one execution contract and the actual structured timeline schema.
+
+| Stage or production mode | Packaged skill |
+|---|---|
+| Main workflow | sadeq-studio |
+| Identity, purpose and lasting approved style | project-memory |
+| Source content, stills, visible text and full-audio ASR | video-analysis |
+| Complete spoken takes and repetition hypotheses | speech-edit |
+| Accurate Arabic copy, typography and shot-specific placement | arabic-product-video |
+| Talking/product reels, montage, text motion, episode clips | video-ad-editor, montage-video, motion-video, podcast-video |
+| Requested separate cover image and explicit external-editor handoff | thumbnail-video, davinci-video |
+| Distinct ad concepts and Iraqi evidence-based review | meta-ads-diversity, iraqi-video-review |
+| Independent timeline, manual voice-over and actual export | timeline-edit, voiceover, export-video |
+
+Shared references cover what to extract from footage, style precedence, the six text presets, relative overlay timing, source/identity/work conflict tokens, manual finishing and observable export review. Saved brand memory/private approved style notes remain local and are read at execution time. User-authored Arabic/Meta/Iraqi preferences are incorporated into the package; production modes have original Studio-specific instructions, without copying the external plugin's separate engine/scripts.
+
+The standard supported path is real source footage → saved identity/evidence → coherent source trims → short timed overlays → independent editable work → MP4. Mode skills explicitly identify limits: generated 3D/collage scenes, word-level karaoke, multicamera/face tracking, a native DaVinci bridge and an automatic Lahajati API are not connected. A separate cover artifact is not an image layer or automatic first-frame insertion. Including an instruction skill does not create those renderer features.
+
 The **calling chat** is the creative agent. Useful CLI commands:
 
 ```sh

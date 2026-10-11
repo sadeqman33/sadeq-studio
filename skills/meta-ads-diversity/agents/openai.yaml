@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sadeq · Meta creative diversity"
+  short_description: "Develop distinct evidenced ad concepts and tests"
+  default_prompt: "Use $meta-ads-diversity to create distinct concepts for my saved Sadeq Studio project."
+policy:
+  allow_implicit_invocation: true

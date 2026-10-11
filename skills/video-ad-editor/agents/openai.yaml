@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sadeq · Reels and ads"
+  short_description: "Turn real talking/product footage into editable reels"
+  default_prompt: "Use $video-ad-editor for my Sadeq Studio project, using its saved identity and current brief."
+policy:
+  allow_implicit_invocation: true

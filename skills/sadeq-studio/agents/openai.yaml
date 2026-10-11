@@ -1,6 +1,6 @@
 interface:
   display_name: "Sadeq Studio"
-  short_description: "Make editable videos from saved project identity"
-  default_prompt: "Use $sadeq-studio to make a video for my project from its saved identity and the feeling I describe, then open its editable timeline."
+  short_description: "Make videos from saved project identity and feeling"
+  default_prompt: "Use $sadeq-studio for my Sadeq Studio project, using its saved identity and current brief."
 policy:
   allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sadeq · Podcast clips"
+  short_description: "Choose complete interview excerpts as separate videos"
+  default_prompt: "Use $podcast-video for my Sadeq Studio project, using its saved identity and current brief."
+policy:
+  allow_implicit_invocation: true

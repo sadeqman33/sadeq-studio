@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sadeq · Voice-over"
+  short_description: "Prepare Iraqi narration and manual Lahajati voice-over"
+  default_prompt: "Use $voiceover for my Sadeq Studio project, using its saved identity and current brief."
+policy:
+  allow_implicit_invocation: true

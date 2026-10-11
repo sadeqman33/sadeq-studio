@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sadeq · Speech takes"
+  short_description: "Choose coherent spoken takes and preserve their meaning"
+  default_prompt: "Use $speech-edit for my Sadeq Studio project, using its saved identity and current brief."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sadeq · Iraqi review"
+  short_description: "Review hooks and observed outcomes for Iraqi audiences"
+  default_prompt: "Use $iraqi-video-review for my Sadeq Studio project, using its saved identity and current brief."
+policy:
+  allow_implicit_invocation: true

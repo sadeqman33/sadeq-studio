@@ -1,0 +1,6 @@
+interface:
+  display_name: "Sadeq · Project memory"
+  short_description: "Keep project identity, purpose and approved style"
+  default_prompt: "Use $project-memory for my Sadeq Studio project, using its saved identity and current brief."
+policy:
+  allow_implicit_invocation: true

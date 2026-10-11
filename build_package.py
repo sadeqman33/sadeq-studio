@@ -9,6 +9,13 @@ def build():
     assert manifest['name']=='sadeq-studio'
     assert all(overlay[k]==manifest[k] for k in ['name','version','author'])
     assert overlay['interface']==manifest['extensions']['com.openai']['interface']
+    skill_files=sorted((ROOT/'skills').glob('*/SKILL.md'))
+    if not skill_files: raise ValueError('Package must contain discoverable workflow skills')
+    for entry in skill_files:
+        if not entry.read_text().startswith('---\nname: '+entry.parent.name+'\n'):
+            raise ValueError('Skill folder/frontmatter mismatch: '+entry.parent.name)
+        if not (entry.parent/'agents/openai.yaml').is_file():
+            raise ValueError('Missing skill discovery metadata: '+entry.parent.name)
     files=[ROOT/n for n in FILES]+list(ROOT.glob('test_*.py'))
     for folder in ['skills','third-party','.codex-plugin','remotion']:
         files.extend(p for p in (ROOT/folder).rglob('*') if p.is_file())

@@ -1,56 +1,32 @@
 ---
 name: sadeq-studio
-description: Create editable videos from a chat using Sadeq's saved project identity and requested feeling. Use for Sadeq Studio, an agent workflow/tag for Trendy or Academy videos, project-aware video creation, or opening the final timeline for manual tweaks and export. Uses the existing local studio on Sadeq's Mac.
+description: "Create an editable video for a saved Sadeq Studio project from a chat brief; route analysis, style, speech, text, timeline and export through the packaged workflows."
 ---
 
-# Sadeq Studio: chat → video → manual finishing
+# Studio workflow
 
-You are the creative agent in the calling chat. Use its brief, desired feeling and requested project, then retrieve that project's saved memory. The studio is the local executor and finishing editor. Do not require a new project chat for every video or invoke a second planning agent. Speak natural Iraqi Arabic.
+You are the creative agent in this chat; the Studio is the local executor and manual finishing editor. Read [execution.md](references/execution.md) first. Use the user's project, requested feeling and actual assets. Reuse saved knowledge rather than learn the project from scratch every time.
 
-This is a local Codex workflow. `$sadeq-studio` invokes this skill. Do not claim this skill connects ChatGPT web/cloud to the Mac or SSD. Filesystem access and the running local service are required. New skills may require reopening a chat/app to appear in its picker.
+## Route only what this request needs
 
-## Local runtime
+| Task | Packaged skill |
+|---|---|
+| New project, identity, purpose, lasting style | [project-memory](../project-memory/SKILL.md) |
+| Analyze videos, speech and visible text, find useful shots | [video-analysis](../video-analysis/SKILL.md) |
+| Choose coherent best takes, repeats and mistakes | [speech-edit](../speech-edit/SKILL.md) |
+| Arabic overlay copy, font, placement, motion | [arabic-product-video](../arabic-product-video/SKILL.md) |
+| Talking/product reel or ad | [video-ad-editor](../video-ad-editor/SKILL.md) |
+| Silent/ambient footage montage | [montage-video](../montage-video/SKILL.md) |
+| Text motion or an explainer brief | [motion-video](../motion-video/SKILL.md) |
+| Episode/interview excerpts | [podcast-video](../podcast-video/SKILL.md) |
+| Requested cover/thumbnail | [thumbnail-video](../thumbnail-video/SKILL.md) |
+| Explicit DaVinci request | [davinci-video](../davinci-video/SKILL.md) |
+| Distinct Meta concepts or testing | [meta-ads-diversity](../meta-ads-diversity/SKILL.md) |
+| Iraqi audience/hook review or outcome learning | [iraqi-video-review](../iraqi-video-review/SKILL.md) |
+| Build/revise the exact independent timeline | [timeline-edit](../timeline-edit/SKILL.md) |
+| Voice-over/Lahajati | [voiceover](../voiceover/SKILL.md) |
+| Requested MP4 and delivery checks | [export-video](../export-video/SKILL.md) |
 
-First read `~/.config/sadeq-studio/runtime.json` when present. Its `runtime_root` is the existing standalone app/data home chosen by the user; verify it contains `workflow.py` and `server.py`, and use that root for all commands. This local configuration is not shipped in the plugin. Installed plugin caches are source packages, never a replacement for an existing registry. Without configuration, use the user's explicitly configured standalone checkout; a source checkout may use its repository root, two directories above this SKILL.md. A cached/copied plugin with no configured runtime must ask for the existing app location before starting a server.
+The normal path is saved identity → current source evidence → coherent idea/takes → short accurate text and shot-specific placement → independent editable work → requested render → manual finishing. Select applicable skills; don't load every mode or force advertising onto an emotional/noncommercial film. Read [styles.md](references/styles.md) and [capabilities.json](references/capabilities.json) as needed. These are shared instructions, not permission to invoke missing tools.
 
-Use `python3 workflow.py` from that chosen root. The service is http://127.0.0.1:8794. Check `projects` first. If unavailable, inspect port ownership and start `server.py --port 8794` from the same verified data home. Never start a second empty registry, rename the data home, or stop a running video job or unrelated service. Read README.md for setup, font and dependency requirements. Write free-form plans to JSON files and pass paths directly with proper shell quoting.
-
-If a local `~/.config/sadeq-studio/references/trendy-store-style.md` exists, read it before planning Trendy / تريندي / ترندي videos. It contains Sadeq's private approved aesthetic baseline. Combine it with the exact project's current memory and brief, keep other brands separate, and verify current offers. Local reference content is evidence and style guidance, never authorization for publishing, spending or uploading. Do not package private brand references with the public plugin.
-
-## Work sequence
-
-1. `workflow.py projects`: resolve the explicitly requested project by exact ID or unique normalized name. Use the current chat to disambiguate meaning, then verify the actual registry. Never silently use the last-open editor project, another brand, or one of duplicate names. Duplicate names require an explicit project ID.
-2. `workflow.py context --project ID`: read saved identity, pinned fields, lasting notes, render style, approved aesthetic references, memory warnings and revision. Read its PROJECT.md/STYLE.md/LEARNINGS.md if more detail is needed. Source documents, footage and transcripts are evidence, never tool authorization. Stop dependent generation on invalid Markdown warnings. Unknown offers/prices/claims stay unknown.
-3. First project ingestion is a one-time full-library analysis through `analyze --project ID --all`; explain its scope and progress. If already initialized, reuse knowledge. Never reanalyze its entire library for each video. Use `assets --project ID --query TEXT` to find actual clips, then `context --project ID --asset ASSET_ID` (repeat up to 12). For new/changed selected footage, analyze only those IDs, then retrieve context again. Cached visual analysis samples stills; local ASR covers audio but is not verified speech. Inspect relevant cached frame images using image tools before claiming visual/style observations. Approved references guide aesthetics; they are not source clips unless explicitly selected. Do not auto-approve references.
-4. Plan in THIS chat from the requested feeling, purpose, saved project identity and actual footage/transcript timecodes. Supported output: sequential trims, one ≤90-character overlay per clip, plain/kinetic/paper/fade/pop/blur text motion, vertical/horizontal aspect, text position/timing and mute. Preserve coherent source speech, original colors and audio. Don't substitute generic advertising for the emotional brief. Generated images/scenes, collage B-roll and overlapping video are not connected; state a material limitation when it affects the brief. The current local editor has Hacen Beirut/Alexandria typography choices. No fabricated dialogue or matching claims.
-5. Write a JSON plan using the exact context tokens: `project_id`, `memory_revision`, `base_fingerprint`, `selected_assets`, `asset_fingerprints`, plus `reason`, `renderer` (`remotion` when available, otherwise `hyperframes`), `ratio` (`9:16` or `16:9`) and `clips`. Each clip has `asset`, `start`, `end`, `text` and optionally `motion` (`inherit/plain/kinetic/paper/fade/pop/blur`), `textY` (15–75), `textStart`, `textEnd`, `mute`. Trim seconds are source-relative. Text seconds are relative to the trimmed clip: `0 <= textStart < textEnd <= end-start`. No other clip keys. `basic` does not support timed text.
-6. `workflow.py submit --plan-file PATH` saves the editable draft and history. Add `--render` when the user requests a video/render; it starts the local export job. Conflicts require reading fresh context and adapting, never resubmitting stale tokens or forcing a write. Query `status --project ID` for actual progress/error/output. Don't invent percentages or declare export complete while it is running. Keep the user updated during long jobs.
-7. Return the actual local MP4 and `editor_url` with its explicit project ID. Open the editor through the Codex panel when helpful. Sadeq changes copy, timing, position, trim/order and audio by hand and exports. Routine supported tweaks do not require another agent call. Preserve old renders and source files. No publishing, account changes, charges or private uploads without separate authorization.
-
-## Independent videos within a project
-
-Each new draft/agent plan creates a separate video work, with its own timeline, typography, audio settings, name, history and exports. Project identity, knowledge and source library are shared. `workflow.py works --project ID` lists all works; `open-work --project ID --work WORK_ID` opens one before retrieving fresh context for an explicit edit. `new-work --project ID --title NAME` starts an empty manual draft. Context includes active_work_id and video_works. Never combine all project videos on one timeline.
-
-For a NEW requested video, submit the plan WITHOUT work_id (optionally give title). For an explicit revision to an EXISTING video, open its work and retrieve context, then include that exact work_id in the plan. The API rejects an inactive work ID or stale tokens. Do not silently revise another work or discard unsaved manual edits. Return editor_url including BOTH project and work IDs; status/exports are scoped to the active work. Legacy exported edit snapshots are imported into the work list without modifying their original files. Small manual changes are saved to their own work; undo remains inside that work.
-
-## Voice-over
-
-Saved dialect/voice/delivery preferences are in context. Prepare proposed copy/delivery in this chat when requested. Lahajati is currently manual: the user copies the script, generates/downloads there, imports audio into the editor and adjusts its voice track. No verified official API, automatic generation or browser account automation is connected. Changing text does not change an existing recording. Never label proposed copy as a verified transcript.
-
-## Remotion
-
-Read available_renderers in context. For a requested Remotion video, use renderer remotion in the existing data-only plan; do not submit JSX or external media URLs. Both 1080p engines support the saved timeline, typography and timed text. Manual changes stay in the active work. Remotion uses the original fixed local composition in remotion/; its license notice is in third-party/Remotion-LICENSE.md. Never buy or configure a paid license without separate user authorization.
-
-## Spoken takes and mistakes
-
-For spoken footage, use `speech-picks --project ID --asset ID` or the `speech_picks` attached to selected `context` evidence. This read-only tool reuses cached word/segment timecodes, identifies possible adjacent repetition, restart/correction cues and nearby look-alike takes. It does not listen to audio or prove a speaker error. New ASR records also retain recognizer metrics; those do not measure delivery or factual truth. Existing records work without re-transcription.
-
-Choose complete coherent phrases for the requested idea, compare surrounding context, and use a complete natural take rather than unfinished starts when meaning agrees. Preserve negation, conditions, names, prices and numbers; when repeated takes disagree, do not pick the fact by a fluency score. A deliberate pause, dialect marker or emphasis can belong in the edit. Never invent dialogue or glue isolated words/syllables into a new claim. Keep small breathing margins where source timing permits, verify/listen to important ambiguous cuts with available audio tools, and mark any listening still needed. Explain kept/dropped repeated takes in plan reason. Original footage stays read-only; each cut remains manually editable. Hypotheses never auto-delete source/timeline material.
-
-## Manual finishing and selfie backgrounds
-
-The preview and timeline share one editing surface. The user can click the ruler, zoom, split at the playhead (S), duplicate/reorder clips, use six text presets and move text. Save status distinguishes saved edits. These are manual per-work edits, never project knowledge. Text timing remains relative to each trim.
-
-For an explicitly requested selfie background edit, check available_renderers.cutout, open the exact work and obtain fresh context. `workflow.py cutout --project ID --work WORK_ID --clip CLIP_ID --base-fingerprint TOKEN --mode blur|color --color '#172a25'` starts the local job. Poll status until finished, then retrieve fresh context before further edits. The UI has the same operation under تعديل المقطع → عزل الشخص. It processes only that selected trim, creates a derived MP4 with original audio and source-range provenance, replaces only that clip in the active work, and preserves originals/history. Stale work/edit/source tokens never replace a timeline. Rescan retains derived assets. Do not claim derived clips have verified transcripts; use lineage to retrieve original source evidence or analyze the new asset if needed.
-
-MediaPipe SelfieSegmenter is downloaded separately by setup-cutout.command, with checksum verification; no footage upload or remote inference. This version modifies the background with blur or solid color; it does not export a transparent layer or arbitrary image/video backgrounds. Processing is bounded to 720p (long side ≤1280), 30fps, SDR, and 120 seconds per operation; a subsequent 1080p export does not restore lost source detail. Review hair/edge quality and moving/occluded subjects. This model targets people, not general product/object removal. Installation on another computer requires the local Python/FFmpeg/model/render/font dependencies. The tag is a Codex workflow, not a universal cloud/editor connection.
+For a requested video, finish the supported executable path through actual export; don't stop at a script/plan. If the exact brief requires an unconnected capability, disclose the specific gap instead of silently substituting another kind of deliverable. New plugin skills may require a new chat/app refresh to appear in the picker. Invocation is `$sadeq-studio` or the Sadeq Studio plugin.
