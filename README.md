@@ -98,7 +98,9 @@ On Apple Silicon, run `./setup-transcription.command`. It creates `.venv-asr`, i
 
 ## Agent workflow
 
-The repository includes its own plugin manifests and `skills/sadeq-studio/SKILL.md`. Load this directory through your local Codex plugin workflow. A separately copied skill needs the location of this checkout; it must not start an empty second registry while another studio is active.
+The plugin is **Sadeq Studio**, authored by **Sadeq Ammar**, with workflow tag `$sadeq-studio`. The repository includes synchronized portable/Codex manifests and `skills/sadeq-studio/SKILL.md`. Build the distributable source package with `python3 build_package.py`, then install through Codex Plugins.
+
+Before using an installed plugin with existing projects, save `~/.config/sadeq-studio/runtime.json` locally with `{"runtime_root": "/absolute/path/to/your/existing/studio"}`. Choose the app directory already holding your project data, not the installed plugin cache. Verify it contains workflow.py and server.py. The skill reads this configuration before using the existing local service; it never moves your projects or starts an empty duplicate registry. Runtime paths and private brand references remain outside the published package. After installing, open a new chat and select Sadeq Studio or invoke `$sadeq-studio`.
 
 The **calling chat** is the creative agent. Useful CLI commands:
 

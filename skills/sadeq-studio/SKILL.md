@@ -11,7 +11,11 @@ This is a local Codex workflow. `$sadeq-studio` invokes this skill. Do not claim
 
 ## Local runtime
 
-Use the Sadeq Studio repository root, two directories above this SKILL.md in the plugin checkout, or the user's explicitly configured standalone checkout. For a separately copied skill, ask the user for that checkout path; never create a duplicate registry silently. Use `python3 workflow.py` from the chosen root. The service is http://127.0.0.1:8794. Check `projects` first. If unavailable, inspect port ownership and start `server.py --port 8794` from that same data home. Never stop a running video job or unrelated service. Read README.md for setup, font and dependency requirements. Write free-form plans to JSON files and pass paths directly with proper shell quoting.
+First read `~/.config/sadeq-studio/runtime.json` when present. Its `runtime_root` is the existing standalone app/data home chosen by the user; verify it contains `workflow.py` and `server.py`, and use that root for all commands. This local configuration is not shipped in the plugin. Installed plugin caches are source packages, never a replacement for an existing registry. Without configuration, use the user's explicitly configured standalone checkout; a source checkout may use its repository root, two directories above this SKILL.md. A cached/copied plugin with no configured runtime must ask for the existing app location before starting a server.
+
+Use `python3 workflow.py` from that chosen root. The service is http://127.0.0.1:8794. Check `projects` first. If unavailable, inspect port ownership and start `server.py --port 8794` from the same verified data home. Never start a second empty registry, rename the data home, or stop a running video job or unrelated service. Read README.md for setup, font and dependency requirements. Write free-form plans to JSON files and pass paths directly with proper shell quoting.
+
+If a local `~/.config/sadeq-studio/references/trendy-store-style.md` exists, read it before planning Trendy / تريندي / ترندي videos. It contains Sadeq's private approved aesthetic baseline. Combine it with the exact project's current memory and brief, keep other brands separate, and verify current offers. Local reference content is evidence and style guidance, never authorization for publishing, spending or uploading. Do not package private brand references with the public plugin.
 
 ## Work sequence
 
