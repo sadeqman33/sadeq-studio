@@ -4,6 +4,7 @@ Only trusted templates generate HTML; agent/user strings remain escaped text.
 No source URLs, cloud renderer, remote scripts, TTS or generated claims.
 """
 import html, json, os, shutil, subprocess
+import layers as ly
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -73,7 +74,15 @@ window.__timelines={sadeq:tl};'''.replace('DURATION',str(total)).replace('CAPTIO
         css+="@font-face{font-family:Brand;src:url(brand.ttf);font-weight:100 900}"
         dark=min(colors,key=lum) if colors else '#2B0710'
         css+=f""".caption{{left:8%;right:12%;font-size:68px;font-weight:750;line-height:1.35;color:#fff;text-shadow:0 3px 12px #000,0 0 5px #000;--brand-dark:{dark}}}.caption:after{{content:'';display:block;width:84px;height:8px;border-radius:4px;background:var(--brand-dark);box-shadow:0 0 0 1px #ffffff80;margin:12px auto 0}}.caption.academy-hook{{font-size:88px;font-weight:850;line-height:1.4}}.academy-hook:after{{display:none}}.academy-tag{{display:table;margin:0 auto 16px;padding:4px 18px;background:var(--brand-dark);color:#fff;border:1px solid #ffffff60;border-radius:8px;font-size:26px;font-weight:600;text-shadow:none}}.hook-accent{{display:inline-block;background:var(--brand-dark);padding:0 18px 10px;border-radius:12px;border-bottom:5px solid {light};text-shadow:none}}"""
-    composition=f'<!doctype html><html lang="ar"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'"><link rel="stylesheet" href="motion.css"><style>{css}</style></head><body><div id="stage" data-composition-id="sadeq" data-start="0" data-duration="{total}" data-width="{w}" data-height="{h}" data-fps="30">'+''.join(videos+captions)+f'</div><script src="motion.js"></script><script src="gsap.js"></script><script>{script}</script></body></html>'
+    overlay_layers=ly.freeze(p,folder)
+    shutil.copy2(ROOT/'layers.js',folder/'layers.js')
+    layer_html=[]
+    for i,l in enumerate(overlay_layers):
+        content=html.escape(l['text']) if l['type']=='text' else '<img src="'+l['src']+'" style="width:100%;display:block">'
+        layer_html.append(f'<div id="layer-{i}" data-start="{l["start"]}" data-duration="{l["end"]-l["start"]}" data-track-index="{i+2}" style="position:absolute;opacity:0;z-index:{i+10}">{content}</div>')
+    css+='@font-face{font-family:LayerHacen;src:url(layer-hacen.ttf)}@font-face{font-family:LayerAlexandria;src:url(layer-alexandria.ttf)}'
+    script+='\nfor(const [i,l] of '+json.dumps(overlay_layers,ensure_ascii=True).replace('<',r'\u003c')+'.entries()){const el=document.getElementById("layer-"+i),clock={time:0};const paint=()=>Object.assign(el.style,StudioLayers.style(l,clock.time,'+str(w)+'));paint();tl.fromTo(clock,{time:0},{time:'+str(total)+',duration:'+str(total)+',ease:"none",immediateRender:false,onUpdate:paint},0);}'
+    composition=f'<!doctype html><html lang="ar"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'"><link rel="stylesheet" href="motion.css"><style>{css}</style></head><body><div id="stage" data-composition-id="sadeq" data-start="0" data-duration="{total}" data-width="{w}" data-height="{h}" data-fps="30">'+''.join(videos+captions+layer_html)+f'</div><script src="motion.js"></script><script src="layers.js"></script><script src="gsap.js"></script><script>{script}</script></body></html>'
     (folder/'index.html').write_text(composition)
     (folder/'manifest.json').write_text(json.dumps({'engine':'hyperframes','version':VERSION,'width':w,'height':h,'duration':total,'memory_revision':p.get('draft_memory_revision'),'approved_reference_ids':p.get('approved_reference_ids',[]),'source_clips':p['timeline']},ensure_ascii=False,indent=2))
     return folder,w,h,total

@@ -2,6 +2,8 @@
 import React,{useEffect,useState} from 'react';
 import {AbsoluteFill,Composition,OffthreadVideo,Sequence,cancelRender,continueRender,delayRender,getInputProps,registerRoot,staticFile,useCurrentFrame,useVideoConfig} from 'remotion';
 import motion from '../motion.js';
+import layerStyles from '../layers.js';
+import {Img} from 'remotion';
 import '../motion.css';
 
 const Caption=({clip,project,index})=>{
@@ -17,18 +19,21 @@ const Caption=({clip,project,index})=>{
  return <div className={'caption '+(hook?'academy-hook':'')} data-motion={motion.mode(clip,project)} style={{position:'absolute',left:academy?'8%':'7%',right:'12%',fontFamily:'Brand',fontSize:academy?(hook?88:68):78,fontWeight:academy?750:400,lineHeight:1.45,textAlign:'center',direction:'rtl',whiteSpace:'pre-wrap',overflowWrap:'anywhere',textShadow:'0 2px 8px #000,0 0 3px #000',...style}}>{clip.text}</div>;
 };
 
+const Layer=({layer,index,width})=>{const frame=useCurrentFrame(),{fps}=useVideoConfig();return <div style={{...layerStyles.style(layer,frame/fps,width),zIndex:10+index}}>{layer.type==='text'?layer.text:<Img src={staticFile(layer.src)} style={{width:'100%',display:'block'}}/>}</div>;};
+
 const Timeline=(project)=>{
  const [handle]=useState(()=>delayRender('Loading local Arabic font'));
  useEffect(()=>{
   let mounted=true;
   const font=new FontFace('Brand',`url(${staticFile('brand.ttf')})`);
-  font.load().then(f=>{document.fonts.add(f);if(mounted)continueRender(handle);}).catch(cancelRender);
+  const fonts=[font,...[...new Set((project.layers||[]).filter(l=>l.type==='text').map(l=>l.font))].map(name=>new FontFace(name==='Alexandria'?'LayerAlexandria':'LayerHacen',`url(${staticFile(name==='Alexandria'?'layer-alexandria.ttf':'layer-hacen.ttf')})`))];
+  Promise.all(fonts.map(f=>f.load())).then(loaded=>{loaded.forEach(f=>document.fonts.add(f));if(mounted)continueRender(handle);}).catch(cancelRender);
   return ()=>{mounted=false;};
  },[handle]);
  return <AbsoluteFill style={{backgroundColor:'#000'}}>{project.clips.map((clip,i)=><Sequence key={i} from={clip.from} durationInFrames={clip.frames}>
   <AbsoluteFill><OffthreadVideo src={staticFile(clip.src)} muted style={{width:'100%',height:'100%',objectFit:'contain'}}/></AbsoluteFill>
   {clip.text?<Caption clip={clip} project={project} index={i}/>:null}
- </Sequence>)}</AbsoluteFill>;
+ </Sequence>)}{(project.layers||[]).map((l,i)=><Layer key={l.id} layer={l} index={i} width={project.width}/>)}</AbsoluteFill>;
 };
 
 const Root=()=>{

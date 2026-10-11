@@ -4,7 +4,7 @@
 The calling chat reads context, makes a plan, submits it and optionally renders.
 All mutations go through the running studio so its job and history guards apply.
 """
-import argparse, json, sys, unicodedata, urllib.error, urllib.request
+import argparse, base64, json, sys, unicodedata, urllib.error, urllib.request
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -43,7 +43,7 @@ class StudioClient:
                 'available_renderers':self.call('/api/health'),'initialized':bool(p.get('analysis_at')),'identity':p['memory_view'],
                 'memory_files':p['memory_files'],'memory_warnings':p.get('memory_document_warnings',[]),
                 'memory_revision':p['project_memory']['revision'],'base_fingerprint':result['edit_fingerprint'],
-                'timeline':p['timeline'],'voiceover':p['voiceover'],'typography':p.get('typography'),'ratio':p.get('ratio'),'renderer':p.get('renderer','basic'),
+                'timeline':p['timeline'],'layers':p.get('layers',[]),'overlay_assets':p.get('overlay_assets',[]),'voiceover':p['voiceover'],'typography':p.get('typography'),'ratio':p.get('ratio'),'renderer':p.get('renderer','basic'),
                 'voiceover_assets':p.get('voiceover_assets',[]),'selected_assets':list(dict.fromkeys(ids)),
                 'asset_fingerprints':{r['asset']['id']:r['source_fingerprint'] for r in records},
                 'evidence':records,'job':result['job'],
@@ -55,9 +55,10 @@ def normalize(text):return ' '.join(unicodedata.normalize('NFKC',text).casefold(
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--url',default='http://127.0.0.1:8794');sub=parser.add_subparsers(dest='action',required=True)
     sub.add_parser('projects')
-    for name in ['context','assets','status','analyze','voice-script','export','works','open-work','new-work','speech-picks','cutout']:
+    for name in ['context','assets','status','analyze','voice-script','export','works','open-work','new-work','speech-picks','cutout','import-image']:
         cmd=sub.add_parser(name);cmd.add_argument('--project',required=True)
         if name in ['context','analyze']:cmd.add_argument('--asset',action='append',default=[])
+        if name=='import-image':cmd.add_argument('--file',type=Path,required=True);cmd.add_argument('--kind',choices=['image','icon'],default='image')
         if name=='speech-picks':cmd.add_argument('--asset',required=True)
         if name=='cutout':
             cmd.add_argument('--clip',required=True);cmd.add_argument('--work',required=True);cmd.add_argument('--base-fingerprint',required=True);cmd.add_argument('--mode',choices=['blur','color'],default='blur');cmd.add_argument('--color',default='#172a25')
@@ -75,6 +76,11 @@ def main(argv=None):
     else:
         chosen=client.resolve(args.project);pid=chosen['id']
         if args.action=='context':result=client.context(pid,args.asset)
+        elif args.action=='import-image':
+            file=args.file.expanduser()
+            if not file.is_file() or file.stat().st_size>8*1024*1024:raise ValueError('الصورة مفقودة أو أكبر من 8 MB')
+            current=client.call('/api/project/'+pid);p=current['project']
+            result=client.call('/api/layer-import',{'id':pid,'work_id':p.get('active_work_id'),'base_fingerprint':current['edit_fingerprint'],'kind':args.kind,'name':file.name,'image':base64.b64encode(file.read_bytes()).decode()})
         elif args.action=='cutout':result=client.call('/api/cutout',{'id':pid,'work_id':args.work,'clip_id':args.clip,'base_fingerprint':args.base_fingerprint,'mode':args.mode,'color':args.color})
         elif args.action=='speech-picks':
             r=client.call('/api/video/'+pid+'/'+args.asset);result={'project_id':pid,'asset_id':args.asset,'stale':r['stale'],'source_fingerprint':r['source_fingerprint'],'speech_picks':r.get('speech_picks')}

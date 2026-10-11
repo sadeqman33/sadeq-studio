@@ -11,6 +11,7 @@ import speech_edit as se
 import cutout as co
 import voiceover as vo
 import typography as typo
+import layers as ly
 import video_works as works
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -145,7 +146,9 @@ def accept_agent_plan(d):
         if d.get('work_id'):
             if d['work_id']!=p.get('active_work_id'):raise ValueError('افتح الفيديو المطلوب واقرأ سياقه قبل تعديله')
             works.find(p,d['work_id'])
-        history(p); p.update(timeline=tl,renderer=renderer,ratio=ratio,draft_reason=str(d.get('reason',''))[:2000],draft_memory_revision=pm.memory(p)['revision'],draft_origin='calling_chat')
+        overlay=ly.validate(p,d.get('layers',p.get('layers',[]) if d.get('work_id') else []))
+        if overlay and renderer=='basic':raise ValueError('الطبقات تحتاج Remotion أو Hyperframes')
+        history(p); p.update(layers=overlay,timeline=tl,renderer=renderer,ratio=ratio,draft_reason=str(d.get('reason',''))[:2000],draft_memory_revision=pm.memory(p)['revision'],draft_origin='calling_chat')
         if not d.get('work_id'):works.begin(p,DATA/pid,d.get('title') or str(d.get('reason',''))[:100] or 'فيديو الإيجنت')
         save(p)
         return {'project_id':pid,'work_id':p['active_work_id'],'clip_count':len(tl),'memory_revision':pm.memory(p)['revision'],'edit_fingerprint':edit_fingerprint(p),'editor_url':'http://127.0.0.1:8794/?project='+pid+'&work='+p['active_work_id']}
@@ -359,7 +362,7 @@ def draft(pid,request,j,ids,production=False):
     if any(c.get('asset') not in ids for c in result['clips']): raise ValueError('المسودة اقترحت مقطع مو مختار؛ المرجع للستايل فقط')
     tl=[{**c,'id':uuid.uuid4().hex[:8],'mute':False,'motion':c.get('motion','inherit')} for c in result['clips']]
     with LOCK:
-        p=project(pid); validate_timeline(p,tl); history(p); p['timeline']=tl; p['draft_reason']=result['reason']; p['draft_memory_revision']=pm.memory(p)['revision']
+        p=project(pid); validate_timeline(p,tl); history(p); p['timeline']=tl; p['layers']=[]; p['draft_reason']=result['reason']; p['draft_memory_revision']=pm.memory(p)['revision']
         if production:p['renderer']=production_engine
         works.begin(p,DATA/pid,str(request or result['reason'])[:100]);save(p)
         if production: p['renderer']=production_engine; save(p)
@@ -423,6 +426,8 @@ def export(pid,j):
     if not tl: raise ValueError('ضيف مقاطع للتايم لاين')
     voice=vo.active(p); total=sum(c['end']-c['start'] for c in tl)
     if voice and voice[0]['offset']>=total: raise ValueError('بداية التعليق بعد نهاية الفيديو؛ عدّل توقيته')
+    if p.get('layers') and p.get('renderer','basic')=='basic':raise ValueError('الطبقات تحتاج محرك 1080')
+    ly.validate(p,p.get('layers',[]))
     if p.get('renderer','basic')=='basic' and any('textStart' in c or 'textEnd' in c for c in tl): raise ValueError('توقيت طبقة النص يحتاج محرك 1080')
     font=typo.font(p)
     if not font.exists(): raise ValueError('الخط المختار مو موجود')
@@ -499,7 +504,7 @@ def review_context(p,j):
         name=f'frame-{idx:02d}'; output=folder/(name+'.jpg'); j['message']=f'أراجع البداية والتسلسل: {t:.2f} ثانية'
         command([FFMPEG,'-v','error','-ss',str(source_time),'-i',src,'-frames:v','1','-vf','scale=540:-2','-y',str(output)],40)
         if not output.exists(): raise ValueError('ما طلع فريم للمراجعة')
-        images.append(output); evidence.append({'id':name,'t':t,'source_time':source_time,'file':assets[c['asset']]['name'],'text_overlay':c['text'],'textY':c.get('textY',63),'planned_motion':motion_mode(c,p),'mode':'rendered_export' if exported else 'source_frame_plus_planned_overlay','image':str(output)})
+        images.append(output); evidence.append({'id':name,'t':t,'source_time':source_time,'file':assets[c['asset']]['name'],'text_overlay':c['text'],'textY':c.get('textY',63),'planned_motion':motion_mode(c,p),'layers':[l for l in p.get('layers',[]) if l.get('enabled',True) and l['start']<=t<l['end']],'overlays_rendered':bool(exported),'mode':'rendered_export' if exported else 'source_frame_plus_planned_overlay','image':str(output)})
     # Technical audio check, never a substitute for listening or a speech transcript.
     first=tl[0]; a=assets[first['asset']]; audio_meta=probe(Path(a['path'])); audio={'has_track':audio_meta['audio'],'muted':first['mute'],'observed_speech':False}
     if audio_meta['audio'] and not first['mute']:
@@ -553,6 +558,10 @@ class H(BaseHTTPRequestHandler):
             path=unquote(urlparse(self.path).path); parts=path.strip('/').split('/')
             if path=='/api/projects': return self.send_json([{'id':p['id'],'name':p['name'],'source':p['source'],'analysis_at':p['analysis_at']} for f in DATA.glob('*/project.json') for p in [read(f)]])
             if path=='/api/health': return self.send_json({'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'cutout':co.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
+            if len(parts)==3 and parts[0]=='overlay-media':
+                p=project(parts[1]);a=next((a for a in p.get('overlay_assets',[]) if a['id']==parts[2]),None)
+                if not a:raise ValueError('صورة غير معروفة')
+                return self.file(Path(a['path']))
             if len(parts)==3 and parts[:2]==['api','memory-documents']:
                 p=project(parts[2]); return self.send_json({'revision':pm.memory(p)['revision'],'warnings':p.get('memory_document_warnings',[]),'files':[{'name':name,'text':(DATA/p['id']/name).read_text()} for name in md.FILES if (DATA/p['id']/name).exists()]})
             if len(parts)==3 and parts[0]=='memory-file' and parts[2] in md.FILES:
@@ -589,7 +598,7 @@ class H(BaseHTTPRequestHandler):
                 return self.file(Path(ev['image']))
             if path=='/font.ttf': return self.file(FONT)
             if path=='/font-alexandria.ttf': return self.file(typo.FONTS['Alexandria'])
-            if path in ['/','/index.html','/app.js','/style.css','/logo.png','/motion.js','/motion.css']: return self.file(ROOT/('index.html' if path=='/' else path[1:]))
+            if path in ['/','/index.html','/app.js','/style.css','/logo.png','/motion.js','/motion.css','/layers.js','/layers_ui.js']: return self.file(ROOT/('index.html' if path=='/' else path[1:]))
             return self.send_json({'error':'غير موجود'},404)
         except Exception as e: self.send_json({'error':str(e)},400)
     def do_POST(self):
@@ -599,7 +608,7 @@ class H(BaseHTTPRequestHandler):
             if host not in ['127.0.0.1:'+str(self.server.server_port),'localhost:'+str(self.server.server_port)] or (origin and origin not in ['http://'+host]): return self.send_json({'error':'origin'},403)
             if 'application/json' not in self.headers.get('Content-Type',''): return self.send_json({'error':'JSON required'},415)
             size=int(self.headers.get('Content-Length',0)); path=urlparse(self.path).path
-            if size<0 or size>(vo.MAX_BYTES*4//3+65536 if path=='/api/voiceover-import' else 1024*1024): raise ValueError('الطلب كبير')
+            if size<0 or size>(max(vo.MAX_BYTES,ly.MAX_BYTES)*4//3+65536 if path in ['/api/voiceover-import','/api/layer-import'] else 1024*1024): raise ValueError('الطلب كبير')
             d=json.loads(self.rfile.read(size))
             if path=='/api/create':
                 with LOCK: return self.send_json(create(d.get('name',''),d['source']))
@@ -611,6 +620,14 @@ class H(BaseHTTPRequestHandler):
                 r=subprocess.run(['osascript','-e',script],capture_output=True,text=True,timeout=120)
                 return self.send_json({'path':r.stdout.strip() if r.returncode==0 else ''})
             pid=d['id']; p=project(pid)
+            if path=='/api/layer-import':
+                with LOCK:
+                    p=project(pid)
+                    if JOBS.get(pid,{}).get('running'):raise ValueError('انتظر العملية الحالية قبل الاستيراد')
+                    if d.get('work_id')!=p.get('active_work_id') or d.get('base_fingerprint')!=edit_fingerprint(p):raise ValueError('المسودة تغيّرت؛ احفظها قبل استيراد الصورة')
+                    a=ly.import_image(p,DATA/pid,d,command,FFPROBE)
+                    p.setdefault('overlay_assets',[]).append(a);save(p)
+                    return self.send_json({'asset':a,'project':public_project(p)})
             if path=='/api/cutout':
                 with LOCK:
                     p=project(pid);spec=prepare_cutout(p,d)
@@ -641,7 +658,7 @@ class H(BaseHTTPRequestHandler):
                     validate_timeline(candidate,candidate['timeline']);candidate['voiceover']=vo.settings(candidate);candidate['typography']=typo.settings(candidate.get('typography'))
                     p=candidate
                 elif path=='/api/work-new':
-                    p['timeline']=[];p['draft_reason']='';p['draft_origin']='manual'
+                    p['timeline']=[];p['layers']=[];p['draft_reason']='';p['draft_origin']='manual'
                     v=vo.settings(p);v.update(enabled=False,asset=None,trimStart=0,trimEnd=0);p['voiceover']=v
                     works.begin(p,DATA/pid,d.get('title') or 'فيديو جديد')
                 elif path=='/api/save':
@@ -654,6 +671,9 @@ class H(BaseHTTPRequestHandler):
                     renderer=d.get('renderer',p.get('renderer','basic'))
                     if renderer not in ['basic','hyperframes','remotion']: raise ValueError('محرك غير معروف')
                     if renderer=='basic' and any('textStart' in c or 'textEnd' in c for c in d['timeline']): raise ValueError('توقيت طبقة النص يحتاج محرك 1080')
+                    overlay=ly.validate(p,d.get('layers',p.get('layers',[])))
+                    if renderer=='basic' and overlay:raise ValueError('طبقات النص والصور تحتاج Remotion أو Hyperframes')
+                    p['layers']=overlay
                     p['renderer']=renderer
                     mode=d.get('motion_style',p.get('motion_style','plain'))
                     if mode not in ['plain','kinetic','paper','fade','pop','blur']: raise ValueError('حركة النص غير صالحة')
@@ -692,7 +712,7 @@ class H(BaseHTTPRequestHandler):
                     # Remove the snapshot just made; restore the preceding snapshot.
                     versions[-1].unlink(); versions=versions[:-1]
                     if not versions: raise ValueError('ماكو تعديل سابق')
-                    retained={k:p.get(k) for k in ['results','reviews','video_analyses','project_memory','memory_documents','approved_reference_ids','knowledge_documents','last_analysis','analysis_at','profile','voiceover_assets'] if k in p}; p=read(versions[-1]); old_colors=p['profile']['colors']; p.update(retained); p['profile']['colors']=old_colors; versions[-1].unlink()
+                    retained={k:p.get(k) for k in ['results','reviews','video_analyses','project_memory','memory_documents','approved_reference_ids','knowledge_documents','last_analysis','analysis_at','profile','voiceover_assets','overlay_assets'] if k in p}; p=read(versions[-1]); old_colors=p['profile']['colors']; p.update(retained); p['profile']['colors']=old_colors; versions[-1].unlink()
                 elif path=='/api/asset':
                     a=next(a for a in p['assets'] if a['id']==d['asset']); a.update(probe(Path(a['path'])))
                 elif path=='/api/link':

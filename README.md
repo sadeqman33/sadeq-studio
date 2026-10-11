@@ -116,9 +116,9 @@ The plugin contains 16 discoverable skills. The main skill routes a request thro
 | Distinct ad concepts and Iraqi evidence-based review | meta-ads-diversity, iraqi-video-review |
 | Independent timeline, manual voice-over and actual export | timeline-edit, voiceover, export-video |
 
-Shared references cover what to extract from footage, style precedence, the six text presets, relative overlay timing, source/identity/work conflict tokens, manual finishing and observable export review. Saved brand memory/private approved style notes remain local and are read at execution time. User-authored Arabic/Meta/Iraqi preferences are incorporated into the package; production modes have original Studio-specific instructions, without copying the external plugin's separate engine/scripts.
+Shared references cover what to extract from footage, style precedence, the six text presets, global independent layers, legacy relative caption timing, source/identity/work conflict tokens, manual finishing and observable export review. Saved brand memory/private approved style notes remain local and are read at execution time. User-authored Arabic/Meta/Iraqi preferences are incorporated into the package; production modes have original Studio-specific instructions, without copying the external plugin's separate engine/scripts.
 
-The standard supported path is real source footage → saved identity/evidence → coherent source trims → short timed overlays → independent editable work → MP4. Mode skills explicitly identify limits: generated 3D/collage scenes, word-level karaoke, multicamera/face tracking, a native DaVinci bridge and an automatic Lahajati API are not connected. A separate cover artifact is not an image layer or automatic first-frame insertion. Including an instruction skill does not create those renderer features.
+The standard supported path is real source footage → saved identity/evidence → coherent source trims → editable timed text/image/icon layers → independent editable work → MP4. Mode skills explicitly identify limits: generated 3D/collage scenes, word-level karaoke, multicamera/face tracking, a native DaVinci bridge and an automatic Lahajati API are not connected. Imported cover art can be a timed image layer; automatic cover generation/full-frame insertion is not connected. Including an instruction skill does not create those renderer features.
 
 The **calling chat** is the creative agent. Useful CLI commands:
 
@@ -139,7 +139,7 @@ Lahajati is currently a manual workflow: prepare copy, generate and download aud
 
 ## Current limits
 
-- Sequential clip editing with one text overlay per clip, not a full multitrack nonlinear editor.
+- Sequential video clips with independent text/image/icon overlay lanes; video/audio overlap is not a full multitrack nonlinear editor.
 - Visual analysis samples stills; it does not watch every frame or verify motion/audio performance.
 - Speech text is automatic and needs human review.
 - No generated scenes/images, automatic publishing, live trend feed, account metrics integration or virality prediction model.
@@ -174,3 +174,11 @@ To verify real inference locally, supply an explicitly chosen test portrait:
 `SADEQ_CUTOUT_TEST_IMAGE=/absolute/test-portrait.jpg python3 -m unittest test_cutout -v`
 
 This package can be set up on another compatible local machine; its Codex skill needs that machine's service, files, models and fonts. It does not connect every chat platform or video editor automatically.
+
+## Independent overlay layers (0.15)
+
+Each video work owns a separate `layers` array. Text, image and icon layers have global timeline start/end, independent X/Y, width, opacity, rotation, enabled state and motion; array order is visual stacking order above footage/legacy captions. Text supports per-layer Hacen Beirut/Alexandria font, color and size. Imported PNG/JPEG/WebP images/icons (up to 8 MB, <=24 megapixels) are converted locally to sanitized PNG, preserving transparency, and shared within that project. SVG/animated image layers are not supported. Originals remain read-only.
+
+Use ＋ نص / ＋ صورة / ＋ أيقونة on the timeline. Every layer has its own lane. Click it to edit; drag inside the preview for placement, drag its bar for timing, and drag its end handle for duration. You can duplicate, hide, reorder or delete an overlay and save/undo within that independent work. Existing clip captions stay editable; empty video captions no longer appear as fake text blocks. Layers are preserved in saved works/history and frozen into actual Remotion/Hyperframes exports. Basic export refuses layers rather than omit them.
+
+Agent plans accept optional `layers` with imported project overlay asset IDs. `workflow.py context` returns layers and `overlay_assets`; `workflow.py import-image --project ID --file /absolute/image.png --kind image|icon` imports a local asset through the existing work/conflict guards, then the agent retrieves fresh context and submits structured layers. No generated JSX or remote image URL enters the renderer. Render snapshots verify image hashes, retain private font/media locally, and use the same deterministic layer style/motion in preview and both engines. A layer changes its own copy without altering recorded narration. Video tracks remain sequential; this adds overlay layers, not overlapping video/audio NLE clips.

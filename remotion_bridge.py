@@ -6,6 +6,7 @@ remote media, cloud deployment or changes to source footage.
 import json, math, subprocess
 from pathlib import Path
 import hyperframes_bridge as hf
+import layers as ly
 
 ROOT=Path(__file__).resolve().parent
 VERSION='4.0.534'
@@ -54,6 +55,7 @@ def prepare(p,out,probe,command,font,j):
               '-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p',
               '-c:a','aac','-ar','48000','-ac','2','-movflags','+faststart','-y',str(public/c['src'])]
         command(cmd,max(180,int(duration*15)))
+    props['layers']=ly.freeze(p,public)
     (folder/'props.json').write_text(json.dumps(props,ensure_ascii=False,indent=2))
     (folder/'manifest.json').write_text(json.dumps({'engine':'remotion','version':VERSION,
         'memory_revision':p.get('draft_memory_revision'),'work_id':p.get('active_work_id'),

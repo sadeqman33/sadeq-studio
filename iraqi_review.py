@@ -50,7 +50,12 @@ def fingerprint(p):
         try:
             stat=Path(voice_asset['path']).stat();source_state['voiceover']={'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}
         except OSError:source_state['voiceover']={'missing':True}
-    obj={'typography':p.get('typography',{'font':'Hacen Beirut','style':'classic'}),'voiceover':p.get('voiceover',{}),'voiceover_assets':[{k:a.get(k) for k in ['id','sha256']} for a in p.get('voiceover_assets',[]) if a['id']==p.get('voiceover',{}).get('asset')],'renderer':p.get('renderer','basic'),'motion_style':p.get('motion_style','plain'),'source_state':source_state,'timeline':p['timeline'],'sources':{c['asset']:assets.get(c['asset']) for c in p['timeline']},'ratio':p.get('ratio','9:16'),'profile':p['profile'],'market':market(p.get('market')),'project_identity':pm.effective(p),'project_notes':pm.memory(p).get('notes',''),'approved_references':p.get('approved_reference_ids',[])}
+    for a in p.get('overlay_assets',[]):
+        if any(l.get('asset')==a['id'] for l in p.get('layers',[])):
+            try:
+                stat=Path(a['path']).stat();source_state['layer-'+a['id']]={'size':stat.st_size,'mtime_ns':stat.st_mtime_ns}
+            except OSError:source_state['layer-'+a['id']]={'missing':True}
+    obj={'layers':p.get('layers',[]),'typography':p.get('typography',{'font':'Hacen Beirut','style':'classic'}),'voiceover':p.get('voiceover',{}),'voiceover_assets':[{k:a.get(k) for k in ['id','sha256']} for a in p.get('voiceover_assets',[]) if a['id']==p.get('voiceover',{}).get('asset')],'renderer':p.get('renderer','basic'),'motion_style':p.get('motion_style','plain'),'source_state':source_state,'timeline':p['timeline'],'sources':{c['asset']:assets.get(c['asset']) for c in p['timeline']},'ratio':p.get('ratio','9:16'),'profile':p['profile'],'market':market(p.get('market')),'project_identity':pm.effective(p),'project_notes':pm.memory(p).get('notes',''),'approved_references':p.get('approved_reference_ids',[])}
     return hashlib.sha256(json.dumps(obj,ensure_ascii=False,sort_keys=True,allow_nan=False).encode()).hexdigest()
 
 ITEM={'type':'object','properties':{'score':{'type':['integer','null']},'reason':{'type':'string'},'evidence':{'type':'array','items':{'type':'string'}}},'required':['score','reason','evidence'],'additionalProperties':False}

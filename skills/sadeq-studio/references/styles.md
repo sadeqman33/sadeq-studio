@@ -4,7 +4,7 @@ Use the current user direction, then the exact project's pinned identity and app
 
 ## Shared production preferences
 
-For product ads, prefer available Hacen Beirut; respect a project's chosen Alexandria or other supported setting. Fonts are locally licensed dependencies and are not shipped. Clear short Arabic directly on the image, controlled contrast, restrained entrance/hold/exit, readable RTL/shaping, and isolated LTR prices/numbers. Avoid a permanent heavy strip/large bubble unless the current brief asks for it. Place text after viewing the shot: protect faces, the demonstrated product, logos, existing captions and relevant actions. If supported vertical positions all obstruct important content, choose another shot or less text; do not claim automatic collision avoidance.
+For product ads, prefer available Hacen Beirut; respect a project's chosen Alexandria or other supported setting. Fonts are locally licensed dependencies and are not shipped. Clear short Arabic directly on the image, controlled contrast, restrained entrance/hold/exit, readable RTL/shaping, and isolated LTR prices/numbers. Avoid a permanent heavy strip/large bubble unless the current brief asks for it. Place text after viewing the shot: protect faces, the demonstrated product, logos, existing captions and relevant actions. Use independent layer X/Y/width to fit the shot; if placement still obstructs important content, choose another shot or less text; do not claim automatic collision avoidance.
 
 White/pink belongs only to the approved Sky-lamp example, teal/dark/light only to the private approved Trendy reference, and an academy hierarchy only when the Academy identity asks for it. Western numerals may be used where the project prefers them; they are not a license to invent a price. No default beige background, gold palette, fake testimonials, fixed shot duration or universal ad CTA.
 
@@ -20,7 +20,7 @@ White/pink belongs only to the approved Sky-lamp example, teal/dark/light only t
 | blur | A requested softer reveal | Text blur/opacity animation; unrelated to selfie background processing |
 | inherit | Keep a work's saved motion style | Reads that work's mode; inspect context first |
 
-All supported modes use the shared motion implementation for preview and the 1080p engines. Choose deliberately from feeling and reading time; do not apply an effect merely because it exists. Test entrance, readable hold and exit in the actual render. More complex staggered word highlights, underlines and feature icons remain design intentions unless the chosen workflow actually implements them.
+All supported modes use the shared motion implementation for preview and the 1080p engines. Choose deliberately from feeling and reading time; do not apply an effect merely because it exists. Test entrance, readable hold and exit in the actual render. Static imported feature icons use independent icon layers with global timing and shared motion. More complex staggered word highlights and animated underlines remain unconnected.
 
 ## Typography and learning
 

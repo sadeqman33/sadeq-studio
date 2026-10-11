@@ -10,17 +10,17 @@ Run python3 workflow.py projects first. If the local service at http://127.0.0.1
 
 ## Project and work resolution
 
-Resolve the user's project by explicit ID or unique normalized name. Duplicate names require an explicit ID; never select the last-open brand by accident. context --project ID provides saved identity, memory files/revision/warnings, source library evidence, active_work_id, video_works, timeline, typography, voiceover, render availability, and edit/source fingerprints.
+Resolve the user's project by explicit ID or unique normalized name. Duplicate names require an explicit ID; never select the last-open brand by accident. context --project ID provides saved identity, memory files/revision/warnings, source library evidence, active_work_id, video_works, timeline, layers, overlay_assets, typography, voiceover, render availability, and edit/source fingerprints.
 
 Read PROJECT.md for purpose/audience/offers, STYLE.md for voice/visual direction, LEARNINGS.md for approved feedback when context alone is insufficient. Respect pinned user fields. Invalid Markdown warnings block dependent generation; preserve marker sections when editing memory. First initialization analyzes the full linked library once. Later requests reuse memory and analyze only new/changed selected sources. A cached result is valid only for the same source fingerprint.
 
-NEW video: submit without work_id; title is useful. EXISTING revision: works --project ID, open-work --project ID --work WORK_ID, then fresh context and that exact work_id. Opening switches the active work: preserve unsaved manual edits and do not disrupt another running job. Each work owns its timeline, typography, voice settings, history and exports; project identity/media are shared.
+NEW video: submit without work_id; title is useful. EXISTING revision: works --project ID, open-work --project ID --work WORK_ID, then fresh context and that exact work_id. Opening switches the active work: preserve unsaved manual edits and do not disrupt another running job. Each work owns its timeline, overlay layers, typography, voice settings, history and exports; project identity/media are shared.
 
 ## Planning and execution
 
 Retrieve assets --project ID --query TEXT, then context --project ID --asset ASSET_ID (repeat up to 12 unique IDs). Check stale reports. Inspect relevant frame images using available image tools; ASR is evidence, not a verified transcript. Build the idea in this chat from the user's feeling, saved identity and actual material.
 
-Read timeline-plan.md before writing the executable plan. Write free-form JSON to a file, never interpolate it into shell code. submit --plan-file PATH saves; add --render for a requested video/render. The server enforces memory/work/edit/source conflicts. On conflict, refresh context and adapt; never force an old plan over newer manual edits.
+Read timeline-plan.md before writing the executable plan. Use independent layers for new editable text/images/icons; import requested local media through import-image first and refresh context. Write free-form JSON to a file, never interpolate it into shell code. submit --plan-file PATH saves; add --render for a requested video/render. The server enforces memory/work/edit/source conflicts. On conflict, refresh context and adapt; never force an old plan over newer manual edits.
 
 status --project ID reports the real job and active-work exports. Keep progress grounded in job output, with updates during long operations; no invented percentage or ETA. A running job is not a completed export. Return the actual MP4 and editor_url containing BOTH project and work IDs. Open the local editor panel when helpful. Preserve originals and prior versions.
 

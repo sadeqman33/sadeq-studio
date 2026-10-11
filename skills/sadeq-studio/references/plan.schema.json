@@ -121,6 +121,125 @@
           }
         }
       }
+    },
+    "layers": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "end"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{8,32}$"
+          },
+          "type": {
+            "enum": [
+              "text",
+              "image",
+              "icon"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "asset": {
+            "type": "string"
+          },
+          "start": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 86400
+          },
+          "end": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 86400
+          },
+          "x": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "y": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "width": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "fontSize": {
+            "type": "number",
+            "minimum": 16,
+            "maximum": 240
+          },
+          "font": {
+            "enum": [
+              "Hacen Beirut",
+              "Alexandria"
+            ]
+          },
+          "color": {
+            "type": "string",
+            "pattern": "^#[a-fA-F0-9]{6}$"
+          },
+          "opacity": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "rotation": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "motion": {
+            "enum": [
+              "plain",
+              "kinetic",
+              "paper",
+              "fade",
+              "pop",
+              "blur"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": {
+                  "enum": [
+                    "image",
+                    "icon"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "asset"
+              ]
+            }
+          }
+        ]
+      }
     }
   }
 }

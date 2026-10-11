@@ -1,9 +1,9 @@
 {
-  "version": 1,
+  "version": 2,
   "implemented": {
     "analysis": "chronological sampled stills + full-audio local ASR; cached source fingerprints",
     "memory": "per-project PROJECT.md/STYLE.md/LEARNINGS.md + typed JSON and user overrides",
-    "timeline": "independent works; sequential source trims; one timed overlay per clip",
+    "timeline": "independent works; sequential source trims; independent timed text/image/icon layers plus legacy clip captions",
     "text": [
       "plain",
       "kinetic",
@@ -33,11 +33,34 @@
       "blur",
       "solid color"
     ],
-    "voiceover": "manual Lahajati generation/download/import; local track controls"
+    "voiceover": "manual Lahajati generation/download/import; local track controls",
+    "layers": {
+      "types": [
+        "text",
+        "image",
+        "icon"
+      ],
+      "text_controls": [
+        "font",
+        "color",
+        "size",
+        "copy"
+      ],
+      "common_controls": [
+        "global timing",
+        "x/y",
+        "width",
+        "opacity",
+        "rotation",
+        "motion",
+        "enabled",
+        "stacking order"
+      ],
+      "media": "local sanitized PNG/JPEG/WebP import; transparency retained; no SVG or animation"
+    }
   },
   "not_connected": [
     "per-word karaoke/highlight layer",
-    "feature-icon overlay track",
     "3D generated scenes",
     "collage B-roll engine",
     "automatic beat effects/detection",
