@@ -1,7 +1,7 @@
 """Independent editable videos sharing one project's identity and media library."""
 import copy, hashlib, json, re, time, uuid
 
-DEFAULTS={'layers':[],'timeline':[],'ratio':'9:16','renderer':'basic','motion_style':'plain',
+DEFAULTS={'export_settings':{'resolution':'1080','fps':30},'layers':[],'timeline':[],'ratio':'9:16','renderer':'basic','motion_style':'plain',
           'typography':{'font':'Hacen Beirut','style':'classic'},'voiceover':{},'market':{},
           'draft_reason':'','draft_origin':'manual','draft_memory_revision':None}
 

@@ -218,6 +218,27 @@
           },
           "enabled": {
             "type": "boolean"
+          },
+          "enterDuration": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "exitDuration": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "exitMotion": {
+            "enum": [
+              "none",
+              "plain",
+              "kinetic",
+              "paper",
+              "fade",
+              "pop",
+              "blur"
+            ]
           }
         },
         "allOf": [
@@ -239,6 +260,25 @@
             }
           }
         ]
+      }
+    },
+    "export_settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resolution": {
+          "enum": [
+            "1080",
+            "4k"
+          ]
+        },
+        "fps": {
+          "type": "integer",
+          "enum": [
+            30,
+            60
+          ]
+        }
       }
     }
   }

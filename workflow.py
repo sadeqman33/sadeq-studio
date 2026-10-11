@@ -43,7 +43,7 @@ class StudioClient:
                 'available_renderers':self.call('/api/health'),'initialized':bool(p.get('analysis_at')),'identity':p['memory_view'],
                 'memory_files':p['memory_files'],'memory_warnings':p.get('memory_document_warnings',[]),
                 'memory_revision':p['project_memory']['revision'],'base_fingerprint':result['edit_fingerprint'],
-                'timeline':p['timeline'],'layers':p.get('layers',[]),'overlay_assets':p.get('overlay_assets',[]),'voiceover':p['voiceover'],'typography':p.get('typography'),'ratio':p.get('ratio'),'renderer':p.get('renderer','basic'),
+                'timeline':p['timeline'],'layers':p.get('layers',[]),'overlay_assets':p.get('overlay_assets',[]),'voiceover':p['voiceover'],'typography':p.get('typography'),'ratio':p.get('ratio'),'renderer':p.get('renderer','basic'),'export_settings':p.get('export_settings'),
                 'voiceover_assets':p.get('voiceover_assets',[]),'selected_assets':list(dict.fromkeys(ids)),
                 'asset_fingerprints':{r['asset']['id']:r['source_fingerprint'] for r in records},
                 'evidence':records,'job':result['job'],
@@ -55,9 +55,12 @@ def normalize(text):return ' '.join(unicodedata.normalize('NFKC',text).casefold(
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--url',default='http://127.0.0.1:8794');sub=parser.add_subparsers(dest='action',required=True)
     sub.add_parser('projects')
-    for name in ['context','assets','status','analyze','voice-script','export','works','open-work','new-work','speech-picks','cutout','import-image']:
+    for name in ['context','assets','status','analyze','voice-script','export','works','open-work','new-work','speech-picks','cutout','import-image','import-video','transcribe','caption-suggest']:
         cmd=sub.add_parser(name);cmd.add_argument('--project',required=True)
         if name in ['context','analyze']:cmd.add_argument('--asset',action='append',default=[])
+        if name=='import-video':cmd.add_argument('--file',type=Path,required=True)
+        if name in ['transcribe','caption-suggest']:cmd.add_argument('--clip',required=True)
+        if name=='caption-suggest':cmd.add_argument('--mode',choices=['words','segments'],default='words')
         if name=='import-image':cmd.add_argument('--file',type=Path,required=True);cmd.add_argument('--kind',choices=['image','icon'],default='image')
         if name=='speech-picks':cmd.add_argument('--asset',required=True)
         if name=='cutout':
@@ -76,6 +79,14 @@ def main(argv=None):
     else:
         chosen=client.resolve(args.project);pid=chosen['id']
         if args.action=='context':result=client.context(pid,args.asset)
+        elif args.action in ['transcribe','caption-suggest','import-video']:
+            current=client.call('/api/project/'+pid);p=current['project'];data={'id':pid,'work_id':p.get('active_work_id'),'base_fingerprint':current['edit_fingerprint']}
+            if args.action=='import-video':
+                data['source']=str(args.file.expanduser().resolve());result=client.call('/api/video-link',data)
+            else:
+                data['clip_id']=args.clip
+                if args.action=='caption-suggest':data['mode']=args.mode
+                result=client.call('/api/'+args.action,data)
         elif args.action=='import-image':
             file=args.file.expanduser()
             if not file.is_file() or file.stat().st_size>8*1024*1024:raise ValueError('الصورة مفقودة أو أكبر من 8 MB')

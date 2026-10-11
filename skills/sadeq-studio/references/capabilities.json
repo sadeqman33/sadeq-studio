@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "implemented": {
     "analysis": "chronological sampled stills + full-audio local ASR; cached source fingerprints",
     "memory": "per-project PROJECT.md/STYLE.md/LEARNINGS.md + typed JSON and user overrides",
@@ -54,13 +54,41 @@
         "rotation",
         "motion",
         "enabled",
-        "stacking order"
+        "stacking order",
+        "enter/exit duration",
+        "independent exit motion",
+        "replace media",
+        "split at playhead"
       ],
       "media": "local sanitized PNG/JPEG/WebP import; transparency retained; no SVG or animation"
-    }
+    },
+    "output": {
+      "resolution": [
+        "1080",
+        "4k"
+      ],
+      "fps": [
+        30,
+        60
+      ],
+      "4k_portrait": [
+        2160,
+        3840
+      ],
+      "4k_landscape": [
+        3840,
+        2160
+      ],
+      "engines": [
+        "remotion",
+        "hyperframes"
+      ]
+    },
+    "captions": "editable word/phrase layers, local ASR source-to-global timing proposals, manual approximate phrase-to-word splitting, per-layer interval split/delete/search",
+    "manual_video": "single local file import; full-duration editable source clip; no creative agent"
   },
   "not_connected": [
-    "per-word karaoke/highlight layer",
+    "sentence-wide per-word karaoke/highlight",
     "3D generated scenes",
     "collage B-roll engine",
     "automatic beat effects/detection",
@@ -68,6 +96,30 @@
     "DaVinci scripting bridge",
     "automatic Lahajati API",
     "transparent background/video replacement",
-    "cloud access to local SSD"
-  ]
+    "cloud access to local SSD",
+    "optical-flow interpolation",
+    "AI video upscaling"
+  ],
+  "manual_layer_multi_selection": {
+    "status": "connected",
+    "selection": "Shift / Command / Ctrl click",
+    "controls": [
+      "shared centre X/Y",
+      "drag selected preview layer",
+      "uniform text/image/icon scale",
+      "delete selection",
+      "undo/redo"
+    ],
+    "scope": "Independent overlay layers; clips remain individually selected"
+  },
+  "editor_keyboard_shortcuts": {
+    "status": "connected",
+    "delete": "Backspace / Delete",
+    "undo": "Command+Z / Ctrl+Z",
+    "redo": "Command+Shift+Z / Ctrl+Shift+Z / Ctrl+Y",
+    "save": "Command+S / Ctrl+S",
+    "play": "Space",
+    "split": "S",
+    "typing": "Native deletion and undo stay in input/textarea/contenteditable fields"
+  }
 }

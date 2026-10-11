@@ -7,7 +7,8 @@ import {Img} from 'remotion';
 import '../motion.css';
 
 const Caption=({clip,project,index})=>{
- const frame=useCurrentFrame(),{fps}=useVideoConfig();
+ const frame=useCurrentFrame(),{fps,width,height}=useVideoConfig();
+ const scale=Math.min(width,height)/1080;
  const style={setProperty(key,value){this[key]=value;}};
  motion.apply({style,dataset:{}},clip,project,frame/fps,clip.frames/fps);
  delete style.setProperty;
@@ -16,7 +17,7 @@ const Caption=({clip,project,index})=>{
  const dark=colors.slice().sort((a,b)=>parseInt(a.slice(1),16)-parseInt(b.slice(1),16))[0]||'#2b0710';
  const hook=academy&&index===0;
  if(academy){style.color='#fff';style['--brand-dark']=dark;}
- return <div className={'caption '+(hook?'academy-hook':'')} data-motion={motion.mode(clip,project)} style={{position:'absolute',left:academy?'8%':'7%',right:'12%',fontFamily:'Brand',fontSize:academy?(hook?88:68):78,fontWeight:academy?750:400,lineHeight:1.45,textAlign:'center',direction:'rtl',whiteSpace:'pre-wrap',overflowWrap:'anywhere',textShadow:'0 2px 8px #000,0 0 3px #000',...style}}>{clip.text}</div>;
+ return <div className={'caption '+(hook?'academy-hook':'')} data-motion={motion.mode(clip,project)} style={{position:'absolute',left:academy?'8%':'7%',right:'12%',fontFamily:'Brand',fontSize:(academy?(hook?88:68):78)*scale,fontWeight:academy?750:400,lineHeight:1.45,textAlign:'center',direction:'rtl',whiteSpace:'pre-wrap',overflowWrap:'anywhere',textShadow:'0 2px 8px #000,0 0 3px #000',...style}}>{clip.text}</div>;
 };
 
 const Layer=({layer,index,width})=>{const frame=useCurrentFrame(),{fps}=useVideoConfig();return <div style={{...layerStyles.style(layer,frame/fps,width),zIndex:10+index}}>{layer.type==='text'?layer.text:<Img src={staticFile(layer.src)} style={{width:'100%',display:'block'}}/>}</div>;};
@@ -38,6 +39,6 @@ const Timeline=(project)=>{
 
 const Root=()=>{
  const p=getInputProps();
- return <Composition id="SadeqTimeline" component={Timeline} width={p.width||1080} height={p.height||1920} fps={30} durationInFrames={p.durationInFrames||30} defaultProps={p}/>;
+ return <Composition id="SadeqTimeline" component={Timeline} width={p.width||1080} height={p.height||1920} fps={p.fps||30} durationInFrames={p.durationInFrames||30} defaultProps={p}/>;
 };
 registerRoot(Root);

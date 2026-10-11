@@ -20,7 +20,7 @@ White/pink belongs only to the approved Sky-lamp example, teal/dark/light only t
 | blur | A requested softer reveal | Text blur/opacity animation; unrelated to selfie background processing |
 | inherit | Keep a work's saved motion style | Reads that work's mode; inspect context first |
 
-All supported modes use the shared motion implementation for preview and the 1080p engines. Choose deliberately from feeling and reading time; do not apply an effect merely because it exists. Test entrance, readable hold and exit in the actual render. Static imported feature icons use independent icon layers with global timing and shared motion. More complex staggered word highlights and animated underlines remain unconnected.
+All supported modes use the shared motion implementation for preview and the 1080p engines. Choose deliberately from feeling and reading time; do not apply an effect merely because it exists. Test entrance, readable hold and exit in the actual render. Static imported feature icons use independent icon layers with global timing and shared motion. Individual words can have separate global intervals and placement; entrance/exit durations and exit modes are editable. Sentence-wide word highlights and animated underlines remain unconnected.
 
 ## Typography and learning
 

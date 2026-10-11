@@ -7,6 +7,7 @@ import json, math, subprocess
 from pathlib import Path
 import hyperframes_bridge as hf
 import layers as ly
+import render_settings as rs
 
 ROOT=Path(__file__).resolve().parent
 VERSION='4.0.534'
@@ -20,16 +21,16 @@ def ready():
 
 def frame_plan(p):
     """Round cumulative boundaries, so many clips never accumulate timing drift."""
+    w,h,fps=rs.dimensions(p)
     elapsed=0; end_frame=0; clips=[]
     for i,c in enumerate(p['timeline']):
         duration=c['end']-c['start']
-        if not math.isfinite(duration) or duration<1/FPS:raise ValueError('Remotion يحتاج كل مقطع بطول إطار واحد على الأقل (1/30 ثانية)')
-        elapsed+=duration; boundary=round(elapsed*FPS)
+        if not math.isfinite(duration) or duration<1/fps:raise ValueError('Remotion يحتاج كل مقطع بطول إطار واحد على الأقل حسب الفريمات المختارة')
+        elapsed+=duration; boundary=round(elapsed*fps)
         clips.append({**c,'src':f'clip-{i}.mp4','from':end_frame,'frames':boundary-end_frame})
         end_frame=boundary
     if not clips:raise ValueError('ضيف مقاطع للتايم لاين')
-    w,h=(1920,1080) if p.get('ratio')=='16:9' else (1080,1920)
-    return {'width':w,'height':h,'fps':FPS,'durationInFrames':end_frame,
+    return {'width':w,'height':h,'fps':fps,'durationInFrames':end_frame,
             'clips':clips,'profile':{'colors':p.get('profile',{}).get('colors',[])},
             'typography':p.get('typography',{}),'motion_style':p.get('motion_style','plain')}
 
@@ -46,11 +47,11 @@ def prepare(p,out,probe,command,font,j):
     (public/'brand.ttf').write_bytes(font.read_bytes())
     for i,(c,(source,meta)) in enumerate(zip(props['clips'],metas)):
         j['message']=f'أجهّز مقاطع Remotion: {i+1} / {len(metas)}'
-        duration=c['frames']/FPS
+        duration=c['frames']/props['fps']
         cmd=['ffmpeg','-v','error','-ss',str(c['start']),'-i',str(source)]
         silent=c.get('mute',False) or not meta['audio']
         if silent:cmd+=['-f','lavfi','-i','anullsrc=r=48000:cl=stereo']
-        cmd+=['-t',str(duration),'-vf',f'scale={props["width"]}:{props["height"]}:force_original_aspect_ratio=decrease,pad={props["width"]}:{props["height"]}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=30,tpad=stop_mode=clone:stop_duration=0.05',
+        cmd+=['-t',str(duration),'-vf',f'scale={props["width"]}:{props["height"]}:force_original_aspect_ratio=decrease,pad={props["width"]}:{props["height"]}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps={props["fps"]},tpad=stop_mode=clone:stop_duration=0.05',
               '-map','0:v:0','-map','1:a:0' if silent else '0:a:0','-af','apad',
               '-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p',
               '-c:a','aac','-ar','48000','-ac','2','-movflags','+faststart','-y',str(public/c['src'])]
@@ -59,13 +60,13 @@ def prepare(p,out,probe,command,font,j):
     (folder/'props.json').write_text(json.dumps(props,ensure_ascii=False,indent=2))
     (folder/'manifest.json').write_text(json.dumps({'engine':'remotion','version':VERSION,
         'memory_revision':p.get('draft_memory_revision'),'work_id':p.get('active_work_id'),
-        'source_clips':p['timeline'],'durationInFrames':props['durationInFrames'],'fps':FPS},ensure_ascii=False,indent=2))
+        'source_clips':p['timeline'],'durationInFrames':props['durationInFrames'],'fps':props['fps']},ensure_ascii=False,indent=2))
     return folder,props
 
 def render(p,out,probe,command,font,j):
     folder,props=prepare(p,out,probe,command,font,j)
-    log=out/'remotion.log';total=props['durationInFrames']/FPS
-    j['message']='Remotion يرسم الفيديو محلياً بدقة 1080…'
+    log=out/'remotion.log';total=props['durationInFrames']/props['fps']
+    j['message']=f'Remotion يرسم {props["width"]}×{props["height"]} · {props["fps"]} فريم…'
     with log.open('w') as stream:
         try:
             result=subprocess.run([hf.node(),str(ROOT/'remotion/render.cjs'),str(folder)],

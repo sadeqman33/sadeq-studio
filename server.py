@@ -12,6 +12,8 @@ import cutout as co
 import voiceover as vo
 import typography as typo
 import layers as ly
+import render_settings as rs
+import captions as cp
 import video_works as works
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -67,6 +69,7 @@ def public_project(p):
     p['edit_fingerprint']=edit_fingerprint(p)
     p['work_list']=works.rows(p)
     p['voiceover']=vo.settings(p)
+    p['export_settings']=rs.settings(p)
     p['typography']=typo.settings(p.get('typography'))
     p['project_memory']=pm.memory(p); p['memory_view']=pm.context(p)
     p['memory_files']=[{'name':name,'path':str(DATA/p['id']/name)} for name in md.FILES]
@@ -86,9 +89,9 @@ def probe(p):
     if r.returncode: raise ValueError('ما قدرت أقرأ المقطع: '+p.name)
     d=json.loads(r.stdout); v=next((s for s in d['streams'] if s['codec_type']=='video'),None)
     if not v: raise ValueError('هذا الملف ما بيه فيديو')
-    return {'duration':float(d['format'].get('duration',0)), 'width':v['width'],'height':v['height'],'audio':any(s['codec_type']=='audio' for s in d['streams']), 'hdr':v.get('color_transfer') in ['arib-std-b67','smpte2084']}
+    return {'duration':float(d['format'].get('duration',0)), 'width':v['width'],'height':v['height'],'audio':any(s['codec_type']=='audio' for s in d['streams']), 'fps':float(__import__('fractions').Fraction(v.get('avg_frame_rate','0/1'))), 'hdr':v.get('color_transfer') in ['arib-std-b67','smpte2084']}
 def scan(source):
-    if source.is_file(): return []
+    if source.is_file(): return [{'id':hashlib.sha256(str(source).encode()).hexdigest()[:16],'path':str(source),'name':source.name,'reference':False}] if source.suffix.lower() in VIDEO else []
     out=[]
     for base,dirs,names in os.walk(source):
         dirs[:]=[d for d in dirs if not d.startswith('.') and 'Auto-Save' not in d and 'Previews' not in d]
@@ -110,7 +113,7 @@ def resolve_source(s):
         p=matches[0]
     p=p.resolve()
     if not p.exists(): raise ValueError('الملف أو المجلد مو موجود؛ تأكد الـSSD مربوط')
-    if p.is_file() and p.suffix.lower() not in DOC: raise ValueError('اختار ملف معلومات TXT / MD / PDF / DOCX / JSON أو مجلد مشروع')
+    if p.is_file() and p.suffix.lower() not in DOC|VIDEO: raise ValueError('اختار ملف معلومات، فيديو، أو مجلد مشروع')
     return p
 DEFAULT={'summary':'بعده ما تحلل','audience':'يحتاج تحليل','voice':'عراقي طبيعي','colors':['#f2eee5','#cb984f'],'font':'Hacen Beirut','pace':'يحتاج تحليل','visual_rules':[],'ideas':[],'facts':[],'uncertainties':[],'evidence':[]}
 def create(name,source):
@@ -148,7 +151,8 @@ def accept_agent_plan(d):
             works.find(p,d['work_id'])
         overlay=ly.validate(p,d.get('layers',p.get('layers',[]) if d.get('work_id') else []))
         if overlay and renderer=='basic':raise ValueError('الطبقات تحتاج Remotion أو Hyperframes')
-        history(p); p.update(layers=overlay,timeline=tl,renderer=renderer,ratio=ratio,draft_reason=str(d.get('reason',''))[:2000],draft_memory_revision=pm.memory(p)['revision'],draft_origin='calling_chat')
+        output=rs.settings({**p,'renderer':renderer},d.get('export_settings',p.get('export_settings',{})))
+        history(p); p.update(export_settings=output,layers=overlay,timeline=tl,renderer=renderer,ratio=ratio,draft_reason=str(d.get('reason',''))[:2000],draft_memory_revision=pm.memory(p)['revision'],draft_origin='calling_chat')
         if not d.get('work_id'):works.begin(p,DATA/pid,d.get('title') or str(d.get('reason',''))[:100] or 'فيديو الإيجنت')
         save(p)
         return {'project_id':pid,'work_id':p['active_work_id'],'clip_count':len(tl),'memory_revision':pm.memory(p)['revision'],'edit_fingerprint':edit_fingerprint(p),'editor_url':'http://127.0.0.1:8794/?project='+pid+'&work='+p['active_work_id']}
@@ -249,6 +253,19 @@ def store_video(pid,a,record):
         p=project(pid); p.setdefault('video_analyses',{})[a['id']]=record
         next(x for x in p['assets'] if x['id']==a['id']).update({k:v for k,v in a.items() if k not in ['analysis_status','speech_status']})
         save(p)
+
+def transcribe_only(pid,aid,j):
+    p=project(pid);a=next((a for a in p['assets'] if a['id']==aid),None)
+    if not a:raise ValueError('الفيديو مو مربوط بالمشروع')
+    fp=vl.fingerprint(a);record=vl.current_record(p,a)
+    if record and record.get('transcript',{}).get('status') in ['transcribed','no_audio','no_speech_detected']:
+        j['completion_message']='التفريغ المحفوظ جاهز؛ تگدر تضيفه للـcaption';return
+    folder=DATA/pid/'videos'/aid/fp[:16];folder.mkdir(parents=True,exist_ok=True);a.update(probe(Path(a['path'])))
+    with SPEECH_LOCK:t=vl.transcribe(ROOT,folder,a,a,j)
+    if vl.fingerprint(a)!=fp:raise ValueError('المصدر تغيّر أثناء التفريغ؛ ما حفظنا نتيجة قديمة')
+    record={'asset':aid,'name':a['name'],'fingerprint':fp,'status':'transcribed','at':time.time(),'transcript':t,'folder':str(folder)}
+    store_video(pid,a,record);(folder/'transcript.txt').write_text(vl.transcript_text(record));(folder/'transcript.srt').write_text(vl.transcript_srt(record))
+    j['completion_message']='التفريغ المحلي جاهز؛ راجع الكلمات والتوقيت قبل اعتمادها'
 
 def analyze_one(pid,a,j):
     p=project(pid); fp=vl.fingerprint(a); record=vl.current_record(p,a)
@@ -422,7 +439,7 @@ def motion_mode(c,p):
     mode=c.get('motion','inherit'); return p.get('motion_style','plain') if mode=='inherit' else mode
 
 def export(pid,j):
-    p=project(pid); tl=validate_timeline(p,copy.deepcopy(p['timeline']))
+    p=project(pid); output=rs.settings(p); tl=validate_timeline(p,copy.deepcopy(p['timeline']))
     if not tl: raise ValueError('ضيف مقاطع للتايم لاين')
     voice=vo.active(p); total=sum(c['end']-c['start'] for c in tl)
     if voice and voice[0]['offset']>=total: raise ValueError('بداية التعليق بعد نهاية الفيديو؛ عدّل توقيته')
@@ -438,10 +455,11 @@ def export(pid,j):
         w,h,expected=engine.render(p,out,probe,command,font,j)
         vo.mix_export(p,out,expected,FFMPEG,command,j,has_audio=probe(out/'final.mp4')['audio'])
         actual=probe(out/'final.mp4')
+        if (actual['width'],actual['height'])!=(w,h) or abs(actual['fps']-output['fps'])>.01:raise ValueError('دقة أو فريمات الملف الناتج تختلف عن الإعدادات')
         if abs(actual['duration']-expected)>.15: raise ValueError('توقيت ملف '+p['renderer']+' الناتج يحتاج مراجعة')
         with LOCK:
-            latest=project(pid); latest['exports'].append({'work_id':p.get('active_work_id'),'version':version,'duration':actual['duration'],'width':w,'height':h,'path':str(out/'final.mp4'),'at':time.time(),'edit_fingerprint':iq.fingerprint(p),'engine':p['renderer'],'engine_version':engine.VERSION}); save(latest)
-        j['completion_message']='الفيديو جاهز بدقة 1080، والمسودة قابلة للتعديل ✅'
+            latest=project(pid); latest['exports'].append({'work_id':p.get('active_work_id'),'version':version,'duration':actual['duration'],'width':w,'height':h,'fps':actual['fps'],'resolution':output['resolution'],'path':str(out/'final.mp4'),'at':time.time(),'edit_fingerprint':iq.fingerprint(p),'engine':p['renderer'],'engine_version':engine.VERSION}); save(latest)
+        j['completion_message']=f'الفيديو جاهز {w}×{h} · {output["fps"]} فريم، والمسودة قابلة للتعديل ✅'
         return
     j['message']='أجهّز النص العربي…'
     command(['node',str(ROOT/'caption.cjs'),str(out/'edit.json'),str(out)],120)
@@ -472,7 +490,7 @@ def export(pid,j):
     actual=probe(out/'final.mp4'); expected=sum(c['end']-c['start'] for c in tl)
     if abs(actual['duration']-expected)>.2*len(tl): raise ValueError('توقيت الملف الناتج يحتاج مراجعة')
     with LOCK:
-        latest=project(pid); latest['exports'].append({'work_id':p.get('active_work_id'),'version':version,'duration':actual['duration'],'width':w,'height':h,'path':str(out/'final.mp4'),'at':time.time(),'edit_fingerprint':iq.fingerprint(p)}); save(latest)
+        latest=project(pid); latest['exports'].append({'work_id':p.get('active_work_id'),'version':version,'duration':actual['duration'],'width':w,'height':h,'fps':actual['fps'],'resolution':'720','path':str(out/'final.mp4'),'at':time.time(),'edit_fingerprint':iq.fingerprint(p)}); save(latest)
 
 
 def review_context(p,j):
@@ -598,7 +616,7 @@ class H(BaseHTTPRequestHandler):
                 return self.file(Path(ev['image']))
             if path=='/font.ttf': return self.file(FONT)
             if path=='/font-alexandria.ttf': return self.file(typo.FONTS['Alexandria'])
-            if path in ['/','/index.html','/app.js','/style.css','/logo.png','/motion.js','/motion.css','/layers.js','/layers_ui.js']: return self.file(ROOT/('index.html' if path=='/' else path[1:]))
+            if path in ['/','/index.html','/app.js','/style.css','/logo.png','/motion.js','/motion.css','/layers.js','/layers_ui.js','/layer_geometry.js','/editor_history.js','/timeline_tools.js','/captions_ui.js']: return self.file(ROOT/('index.html' if path=='/' else path[1:]))
             return self.send_json({'error':'غير موجود'},404)
         except Exception as e: self.send_json({'error':str(e)},400)
     def do_POST(self):
@@ -620,6 +638,27 @@ class H(BaseHTTPRequestHandler):
                 r=subprocess.run(['osascript','-e',script],capture_output=True,text=True,timeout=120)
                 return self.send_json({'path':r.stdout.strip() if r.returncode==0 else ''})
             pid=d['id']; p=project(pid)
+            if path in ['/api/caption-suggest','/api/transcribe']:
+                with LOCK:
+                    p=project(pid)
+                    if JOBS.get(pid,{}).get('running'):raise ValueError('انتظر العملية الحالية')
+                    if d.get('work_id')!=p.get('active_work_id') or d.get('base_fingerprint')!=edit_fingerprint(p):raise ValueError('المسودة تغيّرت؛ اقرأها من جديد')
+                    clip=next((c for c in p['timeline'] if c['id']==d.get('clip_id')),None)
+                    if not clip:raise ValueError('اختار مقطع من تايم لاين هالفيديو')
+                    if path=='/api/transcribe':return self.send_json(run_job(pid,'transcribe',lambda j:transcribe_only(pid,clip['asset'],j)))
+                    asset=next(a for a in p['assets'] if a['id']==clip['asset']);record=vl.current_record(p,asset)
+                    return self.send_json({'layers':ly.validate(p,cp.from_transcript(p,clip,record,d.get('mode','words'))),'automatic':True,'note':'توقيت التفريغ آلي يحتاج مراجعة؛ المسودة ما تغيّرت بعد'})
+            if path=='/api/video-link':
+                with LOCK:
+                    p=project(pid)
+                    if JOBS.get(pid,{}).get('running'):raise ValueError('انتظر العملية الحالية')
+                    if d.get('work_id')!=p.get('active_work_id') or d.get('base_fingerprint')!=edit_fingerprint(p):raise ValueError('المسودة تغيّرت؛ أعد فتحها')
+                    source=resolve_source(d['source'])
+                    if not source.is_file() or source.suffix.lower() not in VIDEO:raise ValueError('اختار ملف فيديو موجود على جهازك')
+                    asset=scan(source)[0];asset.update(probe(source));known={a['id']:a for a in p['assets']};known[asset['id']]=asset
+                    p['assets']=list(known.values());p.setdefault('media_sources',[])
+                    if str(source) not in p['media_sources']:p['media_sources'].append(str(source))
+                    save(p);return self.send_json({'project':public_project(p),'asset_id':asset['id']})
             if path=='/api/layer-import':
                 with LOCK:
                     p=project(pid)
@@ -675,6 +714,7 @@ class H(BaseHTTPRequestHandler):
                     if renderer=='basic' and overlay:raise ValueError('طبقات النص والصور تحتاج Remotion أو Hyperframes')
                     p['layers']=overlay
                     p['renderer']=renderer
+                    p['export_settings']=rs.settings(p,d.get('export_settings',p.get('export_settings',{})))
                     mode=d.get('motion_style',p.get('motion_style','plain'))
                     if mode not in ['plain','kinetic','paper','fade','pop','blur']: raise ValueError('حركة النص غير صالحة')
                     p['motion_style']=mode
@@ -703,6 +743,8 @@ class H(BaseHTTPRequestHandler):
                         r['id']=same['id']; records[records.index(same)]=r
                     else: records.append(r)
                 elif path=='/api/undo':
+                    if 'work_id' in d and d['work_id']!=p.get('active_work_id'):raise ValueError('الفيديو تغيّر؛ أعد فتح المسودة')
+                    if 'base_fingerprint' in d and d['base_fingerprint']!=edit_fingerprint(p):raise ValueError('المسودة تغيّرت؛ حدّثها قبل التراجع')
                     if p.get('active_work_id'):
                         def valid_undo(candidate):
                             validate_timeline(candidate,candidate['timeline']);candidate['voiceover']=vo.settings(candidate);candidate['typography']=typo.settings(candidate.get('typography'))

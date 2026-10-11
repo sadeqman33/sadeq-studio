@@ -2,8 +2,14 @@
 (function(root){
  const modes=['plain','kinetic','paper','fade','pop','blur'];
  function mode(c,p){return modes.includes(c?.motion)?c.motion:(modes.includes(p?.motion_style)?p.motion_style:'plain')}
- function state(t,d,m){
+ function state(t,d,m,options){
   const ease=x=>1-Math.pow(1-Math.max(0,Math.min(1,x)),3);
+  if(options){
+   const incoming=options.enterDuration??(m==='plain'?.2:.38),outgoing=options.exitDuration??.24,exitMode=options.exitMotion||m;
+   const enter=incoming===0?1:ease(t/Math.min(incoming,d/2));
+   const exit=exitMode==='none'||outgoing===0?1:ease((d-t)/Math.min(outgoing,d/2));
+   return {opacity:Math.min(enter,exit),y:(['kinetic','paper'].includes(m)?(1-enter)*.5:0)-(exitMode==='kinetic'?(1-exit)*.3:0),scale:(m==='pop'?.78+.22*enter:m==='paper'?.94+.06*enter:1)*(exitMode==='pop'?1-.22*(1-exit):1),rotate:m==='paper'?-2*(1-enter):0,blur:(m==='blur'?(1-enter)*.18:0)+(exitMode==='blur'?(1-exit)*.18:0)};
+  }
   const enter=m==='plain'?Math.max(0,Math.min(1,t/.2)):ease(t/Math.min(.38,d/3));
   const exit=m==='plain'?1:ease((d-t)/Math.min(.24,d/3));
   return {opacity:Math.min(enter,exit),y:['kinetic','paper'].includes(m)?(1-enter)*.5-(1-exit)*.16:0,scale:m==='paper'?.94+.06*enter:m==='pop'?.78+.22*enter-.06*(1-exit):1,rotate:m==='paper'?-2*(1-enter):0,blur:m==='blur'?(1-enter)*.18+(1-exit)*.12:0};

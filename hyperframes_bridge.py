@@ -5,6 +5,7 @@ No source URLs, cloud renderer, remote scripts, TTS or generated claims.
 """
 import html, json, os, shutil, subprocess
 import layers as ly
+import render_settings as rs
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -30,7 +31,7 @@ def compile_project(p, out, probe, command, font):
     folder=out/'composition'; folder.mkdir(parents=True)
     assets={a['id']:a for a in p['assets']}; videos=[]; captions=[]; timings=[]; total=0
     academy=p.get('typography',{}).get('style')=='academy'
-    w,h=(1920,1080) if p.get('ratio')=='16:9' else (1080,1920)
+    w,h,fps=rs.dimensions(p)
     shutil.copy2(font,folder/'brand.ttf')  # private local render asset; excluded from distribution
     shutil.copy2(ROOT/'node_modules/gsap/dist/gsap.min.js',folder/'gsap.js')
     shutil.copy2(ROOT/'motion.css',folder/'motion.css')
@@ -40,7 +41,7 @@ def compile_project(p, out, probe, command, font):
         if meta['hdr']: raise ValueError('المقطع HDR؛ يحتاج تحويل Apple إلى SDR حتى نحافظ على ألوانه')
         # Freeze only requested ranges. Originals remain untouched. Zero gain is explicit.
         cmd=['ffmpeg','-v','error','-ss',str(c['start']),'-i',a['path'],'-t',str(duration),
-             '-vf',f'scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps=30',
+             '-vf',f'scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps={fps}',
              '-map','0:v:0','-map','0:a:0?','-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p',
              '-c:a','aac','-ar','48000','-ac','2','-movflags','+faststart','-y',str(folder/f'clip-{i}.mp4')]
         command(cmd, max(180,int(duration*15)))
@@ -74,6 +75,8 @@ window.__timelines={sadeq:tl};'''.replace('DURATION',str(total)).replace('CAPTIO
         css+="@font-face{font-family:Brand;src:url(brand.ttf);font-weight:100 900}"
         dark=min(colors,key=lum) if colors else '#2B0710'
         css+=f""".caption{{left:8%;right:12%;font-size:68px;font-weight:750;line-height:1.35;color:#fff;text-shadow:0 3px 12px #000,0 0 5px #000;--brand-dark:{dark}}}.caption:after{{content:'';display:block;width:84px;height:8px;border-radius:4px;background:var(--brand-dark);box-shadow:0 0 0 1px #ffffff80;margin:12px auto 0}}.caption.academy-hook{{font-size:88px;font-weight:850;line-height:1.4}}.academy-hook:after{{display:none}}.academy-tag{{display:table;margin:0 auto 16px;padding:4px 18px;background:var(--brand-dark);color:#fff;border:1px solid #ffffff60;border-radius:8px;font-size:26px;font-weight:600;text-shadow:none}}.hook-accent{{display:inline-block;background:var(--brand-dark);padding:0 18px 10px;border-radius:12px;border-bottom:5px solid {light};text-shadow:none}}"""
+    scale=min(w,h)/1080
+    css+=f'.caption{{font-size:{(68 if academy else 78)*scale}px}}.caption.academy-hook{{font-size:{88*scale}px}}.academy-tag{{font-size:{26*scale}px}}'
     overlay_layers=ly.freeze(p,folder)
     shutil.copy2(ROOT/'layers.js',folder/'layers.js')
     layer_html=[]
@@ -82,16 +85,16 @@ window.__timelines={sadeq:tl};'''.replace('DURATION',str(total)).replace('CAPTIO
         layer_html.append(f'<div id="layer-{i}" data-start="{l["start"]}" data-duration="{l["end"]-l["start"]}" data-track-index="{i+2}" style="position:absolute;opacity:0;z-index:{i+10}">{content}</div>')
     css+='@font-face{font-family:LayerHacen;src:url(layer-hacen.ttf)}@font-face{font-family:LayerAlexandria;src:url(layer-alexandria.ttf)}'
     script+='\nfor(const [i,l] of '+json.dumps(overlay_layers,ensure_ascii=True).replace('<',r'\u003c')+'.entries()){const el=document.getElementById("layer-"+i),clock={time:0};const paint=()=>Object.assign(el.style,StudioLayers.style(l,clock.time,'+str(w)+'));paint();tl.fromTo(clock,{time:0},{time:'+str(total)+',duration:'+str(total)+',ease:"none",immediateRender:false,onUpdate:paint},0);}'
-    composition=f'<!doctype html><html lang="ar"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'"><link rel="stylesheet" href="motion.css"><style>{css}</style></head><body><div id="stage" data-composition-id="sadeq" data-start="0" data-duration="{total}" data-width="{w}" data-height="{h}" data-fps="30">'+''.join(videos+captions+layer_html)+f'</div><script src="motion.js"></script><script src="layers.js"></script><script src="gsap.js"></script><script>{script}</script></body></html>'
+    composition=f'<!doctype html><html lang="ar"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'self\' data: blob:; script-src \'self\' \'unsafe-inline\'; style-src \'self\' \'unsafe-inline\'"><link rel="stylesheet" href="motion.css"><style>{css}</style></head><body><div id="stage" data-composition-id="sadeq" data-start="0" data-duration="{total}" data-width="{w}" data-height="{h}" data-fps="{fps}">'+''.join(videos+captions+layer_html)+f'</div><script src="motion.js"></script><script src="layers.js"></script><script src="gsap.js"></script><script>{script}</script></body></html>'
     (folder/'index.html').write_text(composition)
-    (folder/'manifest.json').write_text(json.dumps({'engine':'hyperframes','version':VERSION,'width':w,'height':h,'duration':total,'memory_revision':p.get('draft_memory_revision'),'approved_reference_ids':p.get('approved_reference_ids',[]),'source_clips':p['timeline']},ensure_ascii=False,indent=2))
+    (folder/'manifest.json').write_text(json.dumps({'engine':'hyperframes','version':VERSION,'width':w,'height':h,'fps':fps,'duration':total,'memory_revision':p.get('draft_memory_revision'),'approved_reference_ids':p.get('approved_reference_ids',[]),'source_clips':p['timeline']},ensure_ascii=False,indent=2))
     return folder,w,h,total
 
 def render(p,out,probe,command,font,j):
-    j['message']='أجهّز لقطات النسخة وطبقات النص بدقة 1080…'
+    j['message']='أجهّز لقطات النسخة وطبقاتها حسب جودة التصدير المختارة…'
     folder,w,h,total=compile_project(p,out,probe,command,font)
     j['message']='Hyperframes يرسم الفيديو محلياً ويحافظ على الصوت الأصلي…'
-    args=[node(),str(CLI),'render',str(folder),'-o',str(out/'final.mp4'),'-f','30','-w','1','--quality','standard','--no-best-effort','--no-browser-gpu','--experimental-fast-capture=false']
+    args=[node(),str(CLI),'render',str(folder),'-o',str(out/'final.mp4'),'-f',str(rs.settings(p)['fps']),'-w','1','--quality','standard','--no-best-effort','--no-browser-gpu','--experimental-fast-capture=false']
     log=out/'hyperframes.log'
     with log.open('w') as stream:
         try:
