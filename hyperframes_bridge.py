@@ -6,6 +6,7 @@ No source URLs, cloud renderer, remote scripts, TTS or generated claims.
 import html, json, os, shutil, subprocess
 import layers as ly
 import render_settings as rs
+import render_runtime as rr
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -25,9 +26,10 @@ def environment():
             'HYPERFRAMES_NO_UPDATE_CHECK':'1', 'HYPERFRAMES_NO_AUTO_INSTALL':'1',
             'PATH':str(Path(node()).parent)+os.pathsep+os.environ.get('PATH','')}
 
-def compile_project(p, out, probe, command, font):
+def compile_project(p, out, probe, command, font, job=None):
     """Freeze trimmed media and an editable composition next to edit.json."""
     if not ready(): raise ValueError('محرك Hyperframes يحتاج إعداد: شغّل setup-hyperframes.command')
+    job={} if job is None else job
     folder=out/'composition'; folder.mkdir(parents=True)
     assets={a['id']:a for a in p['assets']}; videos=[]; captions=[]; timings=[]; total=0
     academy=p.get('typography',{}).get('style')=='academy'
@@ -41,10 +43,11 @@ def compile_project(p, out, probe, command, font):
         if meta['hdr']: raise ValueError('المقطع HDR؛ يحتاج تحويل Apple إلى SDR حتى نحافظ على ألوانه')
         # Freeze only requested ranges. Originals remain untouched. Zero gain is explicit.
         cmd=['ffmpeg','-v','error','-ss',str(c['start']),'-i',a['path'],'-t',str(duration),
-             '-vf',f'scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps={fps}',
+             '-vf',rr.clip_filter(meta,w,h,fps),
              '-map','0:v:0','-map','0:a:0?','-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p',
              '-c:a','aac','-ar','48000','-ac','2','-movflags','+faststart','-y',str(folder/f'clip-{i}.mp4')]
-        command(cmd, max(180,int(duration*15)))
+        job['message']=f'أجهّز المقاطع: {i+1} / {len(p["timeline"])}'
+        rr.cached_clip(a['path'],folder/f'clip-{i}.mp4',cmd,command,max(180,int(duration*15)),out.parent.parent/'.render-cache/hyperframes',job)
         audio=meta['audio'] and not c.get('mute',False)
         videos.append(f'<video id="video-{i}" class="clip footage" src="clip-{i}.mp4" data-start="{total}" data-duration="{duration}" data-track-index="0" data-volume="{1 if audio else 0}" '+('data-has-audio="true"' if audio else 'muted')+' playsinline></video>')
         start=c.get('textStart',0); end=c.get('textEnd',duration); d=end-start
@@ -91,9 +94,9 @@ window.__timelines={sadeq:tl};'''.replace('DURATION',str(total)).replace('CAPTIO
     return folder,w,h,total
 
 def render(p,out,probe,command,font,j):
-    j['message']='أجهّز لقطات النسخة وطبقاتها حسب جودة التصدير المختارة…'
-    folder,w,h,total=compile_project(p,out,probe,command,font)
-    j['message']='Hyperframes يرسم الفيديو محلياً ويحافظ على الصوت الأصلي…'
+    rr.phase(j,'prepare','أجهّز المقاطع؛ أستخدم النسخ المحضّرة إذا ما تغيّرت…')
+    folder,w,h,total=compile_project(p,out,probe,command,font,j)
+    rr.phase(j,'frames','Hyperframes يرسم الفيديو محلياً ويحافظ على الصوت الأصلي…')
     args=[node(),str(CLI),'render',str(folder),'-o',str(out/'final.mp4'),'-f',str(rs.settings(p)['fps']),'-w','1','--quality','standard','--no-best-effort','--no-browser-gpu','--experimental-fast-capture=false']
     log=out/'hyperframes.log'
     with log.open('w') as stream:
@@ -102,6 +105,7 @@ def render(p,out,probe,command,font,j):
         except subprocess.TimeoutExpired: raise ValueError('تصدير Hyperframes تجاوز الوقت؛ المسودة والتفاصيل محفوظة')
     if result.returncode or not (out/'final.mp4').exists():
         raise ValueError('Hyperframes ما كمل التصدير: '+log.read_text(errors='replace')[-1200:])
+    rr.phase(j,'audio','أفحص الصوت وأحفظ الملف…')
     tl=p['timeline']; source={a['id']:a for a in p['assets']}
     if tl and len({c['asset'] for c in tl})==1 and not any(c.get('mute') for c in tl):
         original=Path(source[tl[0]['asset']]['path']); meta=probe(original)

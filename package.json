@@ -1,6 +1,6 @@
 {
   "name": "sadeq-studio",
-  "version": "0.16.1",
+  "version": "0.16.2",
   "description": "Project-aware agent video workflow and local Arabic timeline editor by Sadeq Ammar",
   "private": true,
   "author": "Sadeq Ammar",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@remotion/bundler": "4.0.534",
+    "@remotion/media": "4.0.534",
     "@remotion/renderer": "4.0.534",
     "gsap": "3.14.2",
     "hyperframes": "0.8.143",

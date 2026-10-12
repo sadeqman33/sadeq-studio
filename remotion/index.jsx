@@ -1,6 +1,7 @@
 // Original Sadeq composition: structured clips and plain text, never agent JSX.
 import React,{useEffect,useState} from 'react';
-import {AbsoluteFill,Composition,OffthreadVideo,Sequence,cancelRender,continueRender,delayRender,getInputProps,registerRoot,staticFile,useCurrentFrame,useVideoConfig} from 'remotion';
+import {AbsoluteFill,Composition,Sequence,cancelRender,continueRender,delayRender,getInputProps,registerRoot,staticFile,useCurrentFrame,useVideoConfig} from 'remotion';
+import {Video} from '@remotion/media';
 import motion from '../motion.js';
 import layerStyles from '../layers.js';
 import {Img} from 'remotion';
@@ -20,7 +21,7 @@ const Caption=({clip,project,index})=>{
  return <div className={'caption '+(hook?'academy-hook':'')} data-motion={motion.mode(clip,project)} style={{position:'absolute',left:academy?'8%':'7%',right:'12%',fontFamily:'Brand',fontSize:(academy?(hook?88:68):78)*scale,fontWeight:academy?750:400,lineHeight:1.45,textAlign:'center',direction:'rtl',whiteSpace:'pre-wrap',overflowWrap:'anywhere',textShadow:'0 2px 8px #000,0 0 3px #000',...style}}>{clip.text}</div>;
 };
 
-const Layer=({layer,index,width})=>{const frame=useCurrentFrame(),{fps}=useVideoConfig();return <div style={{...layerStyles.style(layer,frame/fps,width),zIndex:10+index}}>{layer.type==='text'?layer.text:<Img src={staticFile(layer.src)} style={{width:'100%',display:'block'}}/>}</div>;};
+const Layer=({layer,index,width,offset})=>{const frame=useCurrentFrame()+offset,{fps}=useVideoConfig();return <div style={{...layerStyles.style(layer,frame/fps,width),zIndex:10+index}}>{layer.type==='text'?layer.text:<Img src={staticFile(layer.src)} style={{width:'100%',display:'block'}}/>}</div>;};
 
 const Timeline=(project)=>{
  const [handle]=useState(()=>delayRender('Loading local Arabic font'));
@@ -32,9 +33,13 @@ const Timeline=(project)=>{
   return ()=>{mounted=false;};
  },[handle]);
  return <AbsoluteFill style={{backgroundColor:'#000'}}>{project.clips.map((clip,i)=><Sequence key={i} from={clip.from} durationInFrames={clip.frames}>
-  <AbsoluteFill><OffthreadVideo src={staticFile(clip.src)} muted style={{width:'100%',height:'100%',objectFit:'contain'}}/></AbsoluteFill>
+  <AbsoluteFill><Video src={staticFile(clip.src)} muted objectFit="contain" style={{width:'100%',height:'100%'}}/></AbsoluteFill>
   {clip.text?<Caption clip={clip} project={project} index={i}/>:null}
- </Sequence>)}{(project.layers||[]).map((l,i)=><Layer key={l.id} layer={l} index={i} width={project.width}/>)}</AbsoluteFill>;
+ </Sequence>)}{(project.layers||[]).map((l,i)=>{
+  // Mount only active layers. Preserve absolute timing for motion/exit states.
+  const from=Math.floor(l.start*project.fps),end=Math.ceil(l.end*project.fps);
+  return <Sequence key={l.id} from={from} durationInFrames={Math.max(1,end-from)} layout="none"><Layer layer={l} index={i} width={project.width} offset={from}/></Sequence>;
+ })}</AbsoluteFill>;
 };
 
 const Root=()=>{

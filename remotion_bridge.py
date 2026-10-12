@@ -8,13 +8,14 @@ from pathlib import Path
 import hyperframes_bridge as hf
 import layers as ly
 import render_settings as rs
+import render_runtime as rr
 
 ROOT=Path(__file__).resolve().parent
 VERSION='4.0.534'
 FPS=30
 
 def ready():
-    for package in ['remotion','@remotion/bundler','@remotion/renderer']:
+    for package in ['remotion','@remotion/bundler','@remotion/renderer','@remotion/media']:
         file=ROOT/'node_modules'/package/'package.json'
         if not file.exists() or json.loads(file.read_text()).get('version')!=VERSION:return False
     return True
@@ -51,11 +52,11 @@ def prepare(p,out,probe,command,font,j):
         cmd=['ffmpeg','-v','error','-ss',str(c['start']),'-i',str(source)]
         silent=c.get('mute',False) or not meta['audio']
         if silent:cmd+=['-f','lavfi','-i','anullsrc=r=48000:cl=stereo']
-        cmd+=['-t',str(duration),'-vf',f'scale={props["width"]}:{props["height"]}:force_original_aspect_ratio=decrease,pad={props["width"]}:{props["height"]}:(ow-iw)/2:(oh-ih)/2:black,setsar=1,fps={props["fps"]},tpad=stop_mode=clone:stop_duration=0.05',
+        cmd+=['-t',str(duration),'-vf',rr.clip_filter(meta,props['width'],props['height'],props['fps'],pad_tail=True),
               '-map','0:v:0','-map','1:a:0' if silent else '0:a:0','-af','apad',
               '-c:v','libx264','-preset','fast','-crf','18','-pix_fmt','yuv420p',
               '-c:a','aac','-ar','48000','-ac','2','-movflags','+faststart','-y',str(public/c['src'])]
-        command(cmd,max(180,int(duration*15)))
+        rr.cached_clip(source,public/c['src'],cmd,command,max(180,int(duration*15)),out.parent.parent/'.render-cache/remotion',j)
     props['layers']=ly.freeze(p,public)
     (folder/'props.json').write_text(json.dumps(props,ensure_ascii=False,indent=2))
     (folder/'manifest.json').write_text(json.dumps({'engine':'remotion','version':VERSION,
@@ -64,17 +65,17 @@ def prepare(p,out,probe,command,font,j):
     return folder,props
 
 def render(p,out,probe,command,font,j):
+    rr.phase(j,'prepare','أجهّز المقاطع؛ أستخدم النسخ المحضّرة إذا ما تغيّرت…')
     folder,props=prepare(p,out,probe,command,font,j)
     log=out/'remotion.log';total=props['durationInFrames']/props['fps']
-    j['message']=f'Remotion يرسم {props["width"]}×{props["height"]} · {props["fps"]} فريم…'
-    with log.open('w') as stream:
-        try:
-            result=subprocess.run([hf.node(),str(ROOT/'remotion/render.cjs'),str(folder)],
-                cwd=ROOT,env=hf.environment(),stdout=stream,stderr=subprocess.STDOUT,
-                timeout=max(600,int(total*45)))
-        except subprocess.TimeoutExpired:raise ValueError('تصدير Remotion تجاوز الوقت؛ المسودة والتفاصيل محفوظة')
-    if result.returncode or not (folder/'video.mp4').exists():
+    rr.phase(j,'bundle',f'أجهّز Remotion {props["width"]}×{props["height"]} · {props["fps"]} فريم…')
+    try:
+        result=rr.monitored([hf.node(),str(ROOT/'remotion/render.cjs'),str(folder)],log,j,
+                            max(600,int(total*45)),cwd=ROOT,env=hf.environment())
+    except subprocess.TimeoutExpired:raise ValueError('تصدير Remotion تجاوز الوقت؛ المسودة والتفاصيل محفوظة')
+    if result or not (folder/'video.mp4').exists():
         raise ValueError('Remotion ما كمل التصدير: '+log.read_text(errors='replace')[-1200:])
+    rr.phase(j,'audio','أجمع الصوت حسب قصّات التايم لاين وأحفظ الفيديو…')
     # Retain cut/muted source audio independently of React video decoding.
     (folder/'concat.txt').write_text('\n'.join(f"file 'public/{c['src']}'" for c in props['clips']))
     command(['ffmpeg','-v','error','-f','concat','-safe','0','-i',str(folder/'concat.txt'),

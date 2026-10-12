@@ -195,3 +195,11 @@ Per-work export_settings selects 1080p or 4K UHD, and 30/60 fps. Portrait UHD is
 Manual editor shortcuts: Backspace/Delete removes the selected layer or clip from the draft; ⌘Z/Ctrl+Z undoes unsaved manual edits; ⌘⇧Z/Ctrl+Shift+Z (also Ctrl+Y) redoes; ⌘S/Ctrl+S saves; Space plays; S splits. Typing fields keep native text deletion/undo. Session edit history is scoped to the current work; saved history remains available after reloading. The original source file is never deleted.
 
 Shift-click (also Command/Ctrl-click) selects independent layers in the timeline, caption list or preview. Move their shared centre with Group X/Y or drag a selected preview layer; Group Size scales text fonts, image/icon widths and relative spacing together within supported limits. Delete removes all selected layers and Undo restores them. Clip selections stay individual.
+
+### Export performance (0.16.2)
+
+Remotion renders with bounded CPU/RAM-based concurrency, uses WebCodecs-based @remotion/media Video with built-in OffthreadVideo fallback, mounts only active layers, caches Webpack compilation and uses tested Apple VideoToolbox H.264 on compatible Macs (high-rate 12/20 Mbps for 1080p 30/60 and 50/80 Mbps for 4K 30/60), falling back to software CRF 18 / fast encoding. Both engines retain native-or-smaller intermediate footage instead of upscaling twice, and reuse privately cached prepared ranges when only text/layers change. Final output remains at the selected full 1080p/4K and 30/60fps.
+
+The editor displays live Remotion progress, actual frame counts and phase names; each local export includes `performance.json` timing/cache diagnostics. Preparation/audio/final verification are separate phases and may have no percentage. The disposable clip cache is capped at 8 GiB per engine/project; prior exports and original source media are preserved. Set `SADEQ_RENDER_CONCURRENCY=1..8` locally to benchmark your machine when needed.
+
+The one-shot Remotion runner exits after the encoded MP4 has finalized and cleanup has run, avoiding idle bundler/network timers delaying handoff. `runner-timing.json` distinguishes renderer completion from process lifetime.

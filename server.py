@@ -13,6 +13,7 @@ import voiceover as vo
 import typography as typo
 import layers as ly
 import render_settings as rs
+import render_runtime as rr
 import captions as cp
 import video_works as works
 from pathlib import Path
@@ -439,6 +440,15 @@ def motion_mode(c,p):
     mode=c.get('motion','inherit'); return p.get('motion_style','plain') if mode=='inherit' else mode
 
 def export(pid,j):
+    started=time.monotonic()
+    try:return _export(pid,j)
+    finally:
+        rr.finish(j);j['render_seconds']=round(time.monotonic()-started,3)
+        if j.get('export_version'):
+            folder=DATA/pid/'exports'/j['export_version']
+            write(folder/'performance.json',{k:j[k] for k in ['render_seconds','timings','clip_cache','concurrency','encoding_mode'] if k in j})
+
+def _export(pid,j):
     p=project(pid); output=rs.settings(p); tl=validate_timeline(p,copy.deepcopy(p['timeline']))
     if not tl: raise ValueError('ضيف مقاطع للتايم لاين')
     voice=vo.active(p); total=sum(c['end']-c['start'] for c in tl)
@@ -449,10 +459,12 @@ def export(pid,j):
     font=typo.font(p)
     if not font.exists(): raise ValueError('الخط المختار مو موجود')
     version=time.strftime('%Y%m%d-%H%M%S')+'-'+uuid.uuid4().hex[:4]; out=DATA/pid/'exports'/version; out.mkdir(parents=True)
+    j['export_version']=version
     write(out/'edit.json',p)
     if p.get('renderer') in ['hyperframes','remotion']:
         engine=rm if p['renderer']=='remotion' else hf
         w,h,expected=engine.render(p,out,probe,command,font,j)
+        rr.phase(j,'verify','أمزج الصوت وأتأكد من الجودة والمدة والفريمات…')
         vo.mix_export(p,out,expected,FFMPEG,command,j,has_audio=probe(out/'final.mp4')['audio'])
         actual=probe(out/'final.mp4')
         if (actual['width'],actual['height'])!=(w,h) or abs(actual['fps']-output['fps'])>.01:raise ValueError('دقة أو فريمات الملف الناتج تختلف عن الإعدادات')
