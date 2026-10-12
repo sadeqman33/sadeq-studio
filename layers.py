@@ -14,7 +14,7 @@ def number(value,low,high,label):
 def validate(p,items):
     if not isinstance(items,list) or len(items)>100:raise ValueError('لحد 100 طبقة بكل فيديو')
     known={a['id']:a for a in p.get('overlay_assets',[])};seen=set();out=[]
-    allowed={'id','type','name','text','asset','start','end','x','y','width','fontSize','font','color','opacity','rotation','motion','enabled','enterDuration','exitDuration','exitMotion'}
+    allowed={'id','type','name','text','asset','start','end','x','y','width','fontSize','font','color','opacity','rotation','motion','enabled','enterDuration','exitDuration','exitMotion','locked','track'}
     for l in items:
         if not isinstance(l,dict) or set(l)-allowed:raise ValueError('إعداد طبقة غير مدعوم')
         key=l.get('id');kind=l.get('type')
@@ -24,6 +24,12 @@ def validate(p,items):
         if end<=start:raise ValueError('نهاية الطبقة لازم بعد بدايتها')
         row={'id':key,'type':kind,'name':str(l.get('name') or ('نص' if kind=='text' else 'أيقونة' if kind=='icon' else 'صورة'))[:100],'start':start,'end':end,'x':number(l.get('x',50),0,100,'X'),'y':number(l.get('y',50),0,100,'Y'),'width':number(l.get('width',70 if kind=='text' else 30),1,100,'عرض الطبقة'),'opacity':number(l.get('opacity',1),0,1,'الشفافية'),'rotation':number(l.get('rotation',0),-180,180,'الدوران'),'motion':l.get('motion','plain'),'enabled':l.get('enabled',True)}
         if row['motion'] not in MODES or not isinstance(row['enabled'],bool):raise ValueError('حركة أو إظهار الطبقة غير صالح')
+        if 'locked' in l:
+            if not isinstance(l['locked'],bool):raise ValueError('قفل الطبقة غير صالح')
+            row['locked']=l['locked']
+        if 'track' in l:
+            if kind!='text' or l['track'] not in ['caption','title']:raise ValueError('مسار الطبقة غير صالح')
+            row['track']=l['track']
         for field in ['enterDuration','exitDuration']:
             if field in l:row[field]=number(l[field],0,5,'مدة الحركة')
         if 'exitMotion' in l:

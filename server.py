@@ -14,11 +14,12 @@ import typography as typo
 import layers as ly
 import render_settings as rs
 import render_runtime as rr
+import media_previews as mpv
 import captions as cp
 import video_works as works
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, unquote
+from urllib.parse import urlparse, unquote, parse_qs
 ROOT=Path(__file__).resolve().parent
 DATA=Path(os.environ.get('SADEQ_DATA_DIR',str(ROOT/'data'))).expanduser(); DATA.mkdir(parents=True,exist_ok=True)
 LOCK=threading.RLock(); JOBS={}
@@ -588,6 +589,21 @@ class H(BaseHTTPRequestHandler):
             path=unquote(urlparse(self.path).path); parts=path.strip('/').split('/')
             if path=='/api/projects': return self.send_json([{'id':p['id'],'name':p['name'],'source':p['source'],'analysis_at':p['analysis_at']} for f in DATA.glob('*/project.json') for p in [read(f)]])
             if path=='/api/health': return self.send_json({'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'cutout':co.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
+            if len(parts)==4 and parts[:2]==['api','timeline-media']:
+                p=project(parts[2]);q=parse_qs(urlparse(self.path).query);kind=q.get('kind',['video'])[0]
+                if kind not in ['video','voice']:raise ValueError('نوع معاينة غير صالح')
+                voice=kind=='voice';a=next((a for a in p.get('voiceover_assets' if voice else 'assets',[]) if a['id']==parts[3]),None)
+                if not a:raise ValueError('المقطع مو مربوط بهالمشروع')
+                meta={'duration':a['duration'],'audio':True} if voice else probe(Path(a['path']))
+                start=float(q.get('start',['0'])[0]);end=float(q.get('end',[str(meta['duration'])])[0])
+                if not math.isfinite(start+end) or not 0<=start<end<=meta['duration']+.05:raise ValueError('وقت المعاينة خارج المصدر')
+                result=mpv.build(a,start,min(end,meta['duration']),DATA/p['id']/'timeline-previews',FFMPEG,meta['audio'],voice)
+                result['thumbnails']=[f'/timeline-preview/{p["id"]}/{result["key"]}/{i}.jpg' for i in result['thumbnails']]
+                return self.send_json(result)
+            if len(parts)==4 and parts[0]=='timeline-preview':
+                p=project(parts[1])
+                if not re.fullmatch('[a-f0-9]{64}',parts[2]) or parts[3] not in ['0.jpg','1.jpg','2.jpg']:raise ValueError('صورة معاينة غير معروفة')
+                return self.file(DATA/p['id']/'timeline-previews'/parts[2]/parts[3])
             if len(parts)==3 and parts[0]=='overlay-media':
                 p=project(parts[1]);a=next((a for a in p.get('overlay_assets',[]) if a['id']==parts[2]),None)
                 if not a:raise ValueError('صورة غير معروفة')
@@ -628,7 +644,7 @@ class H(BaseHTTPRequestHandler):
                 return self.file(Path(ev['image']))
             if path=='/font.ttf': return self.file(FONT)
             if path=='/font-alexandria.ttf': return self.file(typo.FONTS['Alexandria'])
-            if path in ['/','/index.html','/app.js','/style.css','/logo.png','/motion.js','/motion.css','/layers.js','/layers_ui.js','/layer_geometry.js','/editor_history.js','/timeline_tools.js','/captions_ui.js']: return self.file(ROOT/('index.html' if path=='/' else path[1:]))
+            if path in ['/','/index.html','/app.js','/style.css','/logo.png','/motion.js','/motion.css','/layers.js','/layers_ui.js','/layer_geometry.js','/editor_history.js','/timeline_tools.js','/captions_ui.js','/timeline_geometry.js','/timeline_ui.js']: return self.file(ROOT/('index.html' if path=='/' else path[1:]))
             return self.send_json({'error':'غير موجود'},404)
         except Exception as e: self.send_json({'error':str(e)},400)
     def do_POST(self):

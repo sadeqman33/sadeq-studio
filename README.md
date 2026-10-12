@@ -203,3 +203,11 @@ Remotion renders with bounded CPU/RAM-based concurrency, uses WebCodecs-based @r
 The editor displays live Remotion progress, actual frame counts and phase names; each local export includes `performance.json` timing/cache diagnostics. Preparation/audio/final verification are separate phases and may have no percentage. The disposable clip cache is capped at 8 GiB per engine/project; prior exports and original source media are preserved. Set `SADEQ_RENDER_CONCURRENCY=1..8` locally to benchmark your machine when needed.
 
 The one-shot Remotion runner exits after the encoded MP4 has finalized and cleanup has run, avoiding idle bundler/network timers delaying handoff. `runner-timing.json` distinguishes renderer completion from process lifetime.
+
+### Timeline usability (0.17.0)
+
+The playhead is a keyboard-accessible slider with a drag target along its full height. Pointer updates are coalesced on animation frames; zoom remains anchored to time/pointer position. Continuous zoom, Fit All/Selection, frame stepping, optional follow-playhead and adjustable track height preserve a per-work local view. +/− zoom, F fits all, N toggles snapping, arrows step one frame (Shift=10), Home/End seek bounds; text fields retain native editing.
+
+Caption/title/image/icon display groups pack non-overlapping independent objects and can expand to individual rows. Their saved timing and render stacking stay independent. Shift-click or Shift-drag empty space selects groups; a timeline drag moves their times together. Both edges can trim one selected layer, with frame precision and optional snapping. Double-click text for inline edits, use the compact toolbar, or resize uniformly with preview corner handles. Saved manual locks prevent accidental editor changes.
+
+The editor requests visible source ranges only for private cached thumbnails and normalized source amplitude envelopes, with two-worker limits. Derivative previews are stored under local project `timeline-previews/`; they contain no uploaded media and never enter source packages. Source audio envelopes do not reflect final voiceover ducking/gain, and are not transcripts. Preview ranges over one hour are rejected; clips/source media are preserved.

@@ -121,5 +121,12 @@
     "play": "Space",
     "split": "S",
     "typing": "Native deletion and undo stay in input/textarea/contenteditable fields"
+  },
+  "timeline_usability": {
+    "playhead": "full-height pointer drag, one-output-frame keyboard stepping",
+    "zoom": "continuous anchored zoom, fit all/selection, local per-work view",
+    "layers": "packed display groups, inline copy edit, quick controls, uniform preview handles, manual locks",
+    "timing": "multiple-layer time shifts, both trim edges, optional snap, one Undo entry per pointer edit",
+    "source_previews": "private cached thumbnails and normalized source waveform; no uploads"
   }
 }

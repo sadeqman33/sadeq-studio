@@ -58,3 +58,7 @@ For requested selfie background blur/color, read available_renderers.cutout and 
 Manual editor shortcuts: Backspace/Delete removes the selected layer or clip from the draft; ⌘Z/Ctrl+Z undoes unsaved manual edits; ⌘⇧Z/Ctrl+Shift+Z (also Ctrl+Y) redoes; ⌘S/Ctrl+S saves; Space plays; S splits. Typing fields keep native text deletion/undo. Session edit history is scoped to the current work; saved history remains available after reloading. The original source file is never deleted.
 
 Shift-click (also Command/Ctrl-click) selects independent layers in the timeline, caption list or preview. Move their shared centre with Group X/Y or drag a selected preview layer; Group Size scales text fonts, image/icon widths and relative spacing together within supported limits. Delete removes all selected layers and Undo restores them. Clip selections stay individual.
+
+## Display grouping and manual locks
+
+Optional text `track` is `caption` or `title`; absent values display in the caption group. `locked` is an optional boolean used to prevent accidental manual editing. Neither merges layers nor changes stacking. Preserve these fields on existing revisions unless the user authorizes changing them. View zoom/group expansion/height are browser preferences and do not belong in the executable video plan.

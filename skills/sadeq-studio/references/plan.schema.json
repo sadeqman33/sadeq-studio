@@ -239,6 +239,17 @@
               "pop",
               "blur"
             ]
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "Manual editor lock; preserve locked layers on revisions unless explicitly instructed."
+          },
+          "track": {
+            "enum": [
+              "caption",
+              "title"
+            ],
+            "description": "Optional text grouping, independent from timing/stacking."
           }
         },
         "allOf": [
