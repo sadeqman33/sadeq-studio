@@ -4,6 +4,20 @@
 
 A local video workflow for Codex: describe the project, style and feeling in a chat; the agent uses saved project knowledge to create an editable video. Open that video's own timeline, make small changes by hand, then export MP4.
 
+## هوية الواجهة · 0.19.1
+
+واجهة فحمية مع إجراءات بنفسجية، ألوان مستقلة لأنواع الطبقات، إعدادات تصدير مجمعة ووضع تركيز يوسّع المعاينة والتايم لاين. تغيير الواجهة لا يغيّر ألوان هوية المشاريع أو محتوى المسودات. دليل الاختصارات متاح من شريط الأقسام.
+
+## إنشاء مباشر داخل Studio · 0.19.0
+
+زر **فيديو بالإيجنت** يفتح ثلاث خطوات: الفكرة والمقاطع، الشكل والحركة، ثم إعدادات الملف والمراجعة. زر الإنشاء الأخير يشغّل Codex مباشرة، وبعده يفتح فيديو مستقل قابل للتعديل. تختار MP4 مع مسودة أو مسودة أولاً. تبقى طريقة الطلب من محادثة Codex متاحة.
+
+الخيارات تشمل نوع الفيديو، إيقاع ومدة مستهدفة، كلمة أو كلمتين من التفريغ الآلي بدون تنقيط، خط، ميزات وأيقونات المشروع المطابقة، أربع طرق ظهور، موضع، صوت أصلي أو كتم، مقاس عمودي أو أفقي، 1080p/4K و30/60 fps. المدة والإيقاع توجيه للإيجنت؛ الحركات والتوقيت والكابشن والدقة تنطبق على الطبقات فعلياً. الكابشن يُحجب خلال ظهور الميزة. لا يولّد لقطات أو أيقونات أو صوتاً جديداً.
+
+الإعدادات في المتصفح محفوظة لكل مشروع، وإعدادات الفيديو النهائي محفوظة داخل عمله المستقل. أول تشغيل يحلل المختار والمراجع المعتمدة المحتاجة فقط. يستعمل مسار Codex الموجود (النص والصور المنتقاة حسب إعداداته)، والتفريغ والتصدير محليان. الحركات الأوسع والكاميرا تبقى بمكتبة المراجع ولا يوهم الزر بتطبيق محركات غير موجودة.
+
+API: `POST /api/create-video` takes `id`, `work_id`, `base_fingerprint`, `assets` (1–12 unique IDs), `request`, and validated `settings`. It rejects stale/busy/cross-project requests, checks source fingerprints before committing, creates an independent work only after validating the whole plan, and exposes `analysis/planning/layers/render/done` job stages. Render failures retain the editable new work. Existing projects/works are not migrated by this UI update.
+
 ## شلون يشتغل؟
 
 1. تربط ملف معلومات أو مجلد المشروع من الواجهة.
@@ -211,3 +225,11 @@ The playhead is a keyboard-accessible slider with a drag target along its full h
 Caption/title/image/icon display groups pack non-overlapping independent objects and can expand to individual rows. Their saved timing and render stacking stay independent. Shift-click or Shift-drag empty space selects groups; a timeline drag moves their times together. Both edges can trim one selected layer, with frame precision and optional snapping. Double-click text for inline edits, use the compact toolbar, or resize uniformly with preview corner handles. Saved manual locks prevent accidental editor changes.
 
 The editor requests visible source ranges only for private cached thumbnails and normalized source amplitude envelopes, with two-worker limits. Derivative previews are stored under local project `timeline-previews/`; they contain no uploaded media and never enter source packages. Source audio envelopes do not reflect final voiceover ducking/gain, and are not transcripts. Preview ranges over one hour are rejected; clips/source media are preserved.
+
+## Motion bank (0.18.0)
+
+The timeline's **بنك الحركات** opens 50 locally stored, numbered reference previews from Majed Video 4.5 (MIT; pinned provenance in motion-bank/SOURCE.json and third-party/majed-motion-bank). Search, filter, prefer/exclude and create per-video motion plans. Preferences and the last 100 plans persist under data/motion-bank/state.json. Plans never edit a timeline.
+
+Sixteen native Studio adaptations are applicable to selected unlocked text layers; six also support images/icons. Use **جرّب حركة Studio** for the actual implementation preview and **طبّق على المحدد** to apply. Existing positions, sizes, fonts and text are retained; the operation uses normal draft/undo/save. Preview and both advanced export engines share bank_motion.js. Reference demonstrations are separate from native output. Camera, scene transitions, complex cards and edit rules remain planning references, clearly labeled in the UI; they are not silently mapped to a different effect. Word timing is uniform within a layer, not automatic speech alignment.
+
+Agent interface: workflow.py motion-bank, motion-preferences and motion-plan. See skills/sadeq-studio/references/motion-bank.md.

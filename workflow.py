@@ -38,7 +38,8 @@ class StudioClient:
         for aid in dict.fromkeys(ids):
             r=self.call('/api/video/'+p['id']+'/'+aid)
             records.append({'asset':assets[aid],'cached_record':r['record'],'stale':r['stale'],'source_fingerprint':r['source_fingerprint'],'speech_picks':r.get('speech_picks')})
-        return {'project_id':p['id'],'project_name':p['name'],'source':p['source'],
+        bank=self.call('/api/motion-bank')
+        return {'motion_bank':{'preferences':{k:bank['state'][k] for k in ['revision','on','off']},'layer_ids':[m['id'] for m in bank['catalog'] if m['native_types']],'recent_plans':[h for h in bank['state']['history'] if h.get('project_id')==p['id']][-3:],'catalog_command':'workflow.py motion-bank','note':'bankMotion is optional on independent layers. See catalog native_types; reference-only moves are not render effects.'},'project_id':p['id'],'project_name':p['name'],'source':p['source'],
                 'active_work_id':p.get('active_work_id'),'video_works':p.get('work_list',[]),
                 'available_renderers':self.call('/api/health'),'initialized':bool(p.get('analysis_at')),'identity':p['memory_view'],
                 'memory_files':p['memory_files'],'memory_warnings':p.get('memory_document_warnings',[]),
@@ -55,6 +56,9 @@ def normalize(text):return ' '.join(unicodedata.normalize('NFKC',text).casefold(
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--url',default='http://127.0.0.1:8794');sub=parser.add_subparsers(dest='action',required=True)
     sub.add_parser('projects')
+    sub.add_parser('motion-bank')
+    pref=sub.add_parser('motion-preferences');pref.add_argument('--revision',required=True,type=int);pref.add_argument('--on',nargs='*',default=[]);pref.add_argument('--off',nargs='*',default=[])
+    mp=sub.add_parser('motion-plan');mp.add_argument('--project',required=True);mp.add_argument('--family',default='auto');mp.add_argument('--cue',action='append',default=[]);mp.add_argument('--native-only',action='store_true')
     for name in ['context','assets','status','analyze','voice-script','export','works','open-work','new-work','speech-picks','cutout','import-image','import-video','transcribe','caption-suggest']:
         cmd=sub.add_parser(name);cmd.add_argument('--project',required=True)
         if name in ['context','analyze']:cmd.add_argument('--asset',action='append',default=[])
@@ -73,6 +77,11 @@ def main(argv=None):
     submit=sub.add_parser('submit');submit.add_argument('--plan-file',type=Path,required=True);submit.add_argument('--render',action='store_true')
     args=parser.parse_args(argv);client=StudioClient(args.url)
     if args.action=='projects':result=client.call('/api/projects')
+    elif args.action=='motion-bank':result=client.call('/api/motion-bank')
+    elif args.action=='motion-preferences':result=client.call('/api/motion-bank',{'action':'preferences','revision':args.revision,'on':args.on,'off':args.off})
+    elif args.action=='motion-plan':
+        chosen=client.resolve(args.project);p=client.call('/api/project/'+chosen['id'])['project'];bank=client.call('/api/motion-bank')
+        result=client.call('/api/motion-bank',{'action':'plan','revision':bank['state']['revision'],'id':p['id'],'work_id':p.get('active_work_id'),'title':p['name'][:100],'family':args.family,'cues':args.cue,'native_only':args.native_only})
     elif args.action=='submit':
         plan=json.loads(args.plan_file.read_text());result=client.call('/api/agent-plan',plan)
         if args.render:result={'project':result,'job':client.call('/api/export',{'id':plan['project_id'],'work_id':result['work_id']})}

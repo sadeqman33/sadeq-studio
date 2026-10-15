@@ -7,6 +7,12 @@ description: "Create an editable video for a saved Sadeq Studio project from a c
 
 You are the creative agent in this chat; the Studio is the local executor and manual finishing editor. Read [execution.md](references/execution.md) first. Use the user's project, requested feeling and actual assets. Reuse saved knowledge rather than learn the project from scratch every time.
 
+For a motion bank request, read [motion-bank.md](references/motion-bank.md).
+
+## Direct Studio creation
+
+When the user wants to choose options and launch the agent inside Studio, open the **فيديو بالإيجنت** wizard. Its final user-triggered button launches the existing structured agent, creates an independent editable work, and optionally exports locally. Do not launch it merely to demonstrate the UI on real project media. Chat-initiated work still uses the normal calling-chat workflow below. The wizard's motion and caption controls are executable; camera/transition reference previews do not imply implemented camera transforms.
+
 ## Route only what this request needs
 
 | Task | Packaged skill |

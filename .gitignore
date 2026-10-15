@@ -28,3 +28,6 @@ export-frame.jpg
 models/
 *.tflite
 .cache-cutout/
+
+# Licensed catalog demonstration assets (never user footage)
+!motion-bank/previews/*.mp4

@@ -2,7 +2,7 @@
 const TUI={scope:null,snap:true,follow:true,expanded:{},height:230,dragging:false,media:new Map(),queue:[],workers:0,mediaTick:0};
 const timelineFPS=()=>P?.export_settings?.fps||30;
 const TL_LABEL=110;
-function applyTimelineHeight(){const h=Math.max(780,TUI.height+490);$('timelineBody').style.height=TUI.height+'px';document.querySelector('.editor-column').style.minHeight=h+'px';document.querySelector('.workspace').style.minHeight=h+'px'}
+function applyTimelineHeight(){const extra=$('captionsPanel')?.open?142:0,h=Math.max(700,TUI.height+510)+extra;$('timelineBody').style.height=TUI.height+'px';document.querySelector('.editor-column').style.minHeight=h+'px';document.querySelector('.workspace').style.minHeight=h+'px'}
 function syncTimelineView(){
  if(!P||TUI.scope===editorScope())return;TUI.scope=editorScope();
  let v={};try{v=JSON.parse(localStorage.getItem('sadeq-timeline:'+TUI.scope)||'{}')}catch{}

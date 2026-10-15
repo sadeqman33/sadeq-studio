@@ -3,7 +3,7 @@
   "author": "Sadeq Ammar",
   "scope": "Standalone local app and project-aware agent workflow",
   "application_origin": "Original standalone implementation developed for Sadeq",
-  "excluded": "Original external video plugin workflows, scripts, assets and packaging are not distributed here.",
+  "excluded": "External video production workflows and engine scripts are not bundled. Motion catalog and previews are selectively included as documented below.",
   "dependencies": {
     "hyperframes": "0.8.143 — Apache-2.0",
     "gsap": "3.14.2 — Standard no-charge license",
@@ -17,5 +17,11 @@
     "mediabunny": "1.56.1 — MPL-2.0, transitive local WebCodecs decoding"
   },
   "private_content": "No project memory, footage, transcripts, exports, credentials or font files included.",
-  "workflow_origin": "Original Studio-specific production modes; Sadeq-authored Arabic product, Meta diversification and Iraqi review preferences; 16 packaged skills share actual runtime contracts."
+  "workflow_origin": "Original Studio-specific production modes; Sadeq-authored Arabic product, Meta diversification and Iraqi review preferences; 16 packaged skills share actual runtime contracts.",
+  "motion_bank": {
+    "source": "https://github.com/majedphotos/video-ad-editor",
+    "commit": "cf39f0fb685dbcabac882907ff3ca66256feee35",
+    "license": "MIT",
+    "included": "50-entry reference catalog and demonstration previews. Studio native layer adaptations written separately. See third-party/majed-motion-bank."
+  }
 }

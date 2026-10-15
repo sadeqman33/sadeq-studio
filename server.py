@@ -12,10 +12,12 @@ import cutout as co
 import voiceover as vo
 import typography as typo
 import layers as ly
+import motion_bank as mb
 import render_settings as rs
 import render_runtime as rr
 import media_previews as mpv
 import captions as cp
+import creation
 import video_works as works
 from pathlib import Path
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -587,8 +589,11 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path=unquote(urlparse(self.path).path); parts=path.strip('/').split('/')
+            if path=='/api/motion-bank':return self.send_json(mb.public(DATA))
+            if len(parts)==3 and parts[:2]==['motion-bank','previews'] and re.fullmatch(r'(0[1-9]|[1-4][0-9]|50)\.mp4',parts[2]):return self.file(ROOT/'motion-bank/previews'/parts[2])
+            if len(parts)==3 and parts[:2]==['motion-bank','posters'] and re.fullmatch(r'(0[1-9]|[1-4][0-9]|50)\.jpg',parts[2]):return self.file(ROOT/'motion-bank/posters'/parts[2])
             if path=='/api/projects': return self.send_json([{'id':p['id'],'name':p['name'],'source':p['source'],'analysis_at':p['analysis_at']} for f in DATA.glob('*/project.json') for p in [read(f)]])
-            if path=='/api/health': return self.send_json({'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'cutout':co.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
+            if path=='/api/health': return self.send_json({'studio_version':'0.19.0','motion_bank':{'catalog':50,'native_layers':16},'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'cutout':co.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
             if len(parts)==4 and parts[:2]==['api','timeline-media']:
                 p=project(parts[2]);q=parse_qs(urlparse(self.path).query);kind=q.get('kind',['video'])[0]
                 if kind not in ['video','voice']:raise ValueError('نوع معاينة غير صالح')
@@ -644,7 +649,7 @@ class H(BaseHTTPRequestHandler):
                 return self.file(Path(ev['image']))
             if path=='/font.ttf': return self.file(FONT)
             if path=='/font-alexandria.ttf': return self.file(typo.FONTS['Alexandria'])
-            if path in ['/','/index.html','/app.js','/style.css','/logo.png','/motion.js','/motion.css','/layers.js','/layers_ui.js','/layer_geometry.js','/editor_history.js','/timeline_tools.js','/captions_ui.js','/timeline_geometry.js','/timeline_ui.js']: return self.file(ROOT/('index.html' if path=='/' else path[1:]))
+            if path in ['/','/index.html','/app.js','/style.css','/logo.png','/motion.js','/motion.css','/layers.js','/layers_ui.js','/layer_geometry.js','/editor_history.js','/timeline_tools.js','/captions_ui.js','/timeline_geometry.js','/timeline_ui.js','/bank_motion.js','/motion_bank_ui.js','/motion_bank.css','/studio_ui.js','/studio_ui.css']: return self.file(ROOT/('index.html' if path=='/' else path[1:]))
             return self.send_json({'error':'غير موجود'},404)
         except Exception as e: self.send_json({'error':str(e)},400)
     def do_POST(self):
@@ -656,6 +661,12 @@ class H(BaseHTTPRequestHandler):
             size=int(self.headers.get('Content-Length',0)); path=urlparse(self.path).path
             if size<0 or size>(max(vo.MAX_BYTES,ly.MAX_BYTES)*4//3+65536 if path in ['/api/voiceover-import','/api/layer-import'] else 1024*1024): raise ValueError('الطلب كبير')
             d=json.loads(self.rfile.read(size))
+            if path=='/api/motion-bank':
+                with LOCK:
+                    if d.get('action')=='plan':
+                        p=project(d.get('id',''))
+                        if d.get('work_id')!=p.get('active_work_id'):raise ValueError('الفيديو تغيّر؛ افتح البنك من جديد')
+                    return self.send_json(mb.update(DATA,d))
             if path=='/api/create':
                 with LOCK: return self.send_json(create(d.get('name',''),d['source']))
             if path=='/api/agent-plan':
@@ -711,6 +722,10 @@ class H(BaseHTTPRequestHandler):
                     if p.get('active_work_id') and 'work_id' not in d:raise ValueError('حدد الفيديو المطلوب للتصدير؛ حدّث الواجهة إذا مفتوحة من النسخة القديمة')
                     if 'work_id' in d and d['work_id']!=p.get('active_work_id'):raise ValueError('الفيديو المفتوح تغيّر؛ حدده من جديد قبل التصدير')
                     return self.send_json(run_job(pid,'export',lambda j:export(pid,j)))
+            if path=='/api/create-video':
+                with LOCK:
+                    p=project(pid);spec=creation.prepare(p,d)
+                    return self.send_json(run_job(pid,'create',lambda j:creation.run(pid,spec,j)))
             if path=='/api/produce':
                 if not hf.ready(): raise ValueError('محرك الفيديو يحتاج إعداد Hyperframes')
                 return self.send_json(run_job(pid,'produce',lambda j:produce(pid,str(d.get('request',''))[:2000],j,d.get('assets',[]))))

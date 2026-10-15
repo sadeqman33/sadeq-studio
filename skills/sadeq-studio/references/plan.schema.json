@@ -250,6 +250,28 @@
               "title"
             ],
             "description": "Optional text grouping, independent from timing/stacking."
+          },
+          "bankMotion": {
+            "type": "string",
+            "enum": [
+              "blurIn",
+              "caption",
+              "counter",
+              "ctaPulse",
+              "decrypt",
+              "focus",
+              "highlight",
+              "riseUp",
+              "rubberPop",
+              "scrollReveal",
+              "shine",
+              "strokeFill",
+              "typewriter",
+              "wordDrop",
+              "wordPath",
+              "wordSwap"
+            ],
+            "description": "Optional native bank effect; text supports all listed IDs, image/icon only blurIn, riseUp, wordDrop, rubberPop, shine, ctaPulse. Reference-only catalog IDs are rejected."
           }
         },
         "allOf": [

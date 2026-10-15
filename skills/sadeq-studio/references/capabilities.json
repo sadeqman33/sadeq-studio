@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "implemented": {
     "analysis": "chronological sampled stills + full-audio local ASR; cached source fingerprints",
     "memory": "per-project PROJECT.md/STYLE.md/LEARNINGS.md + typed JSON and user overrides",
@@ -85,7 +85,20 @@
       ]
     },
     "captions": "editable word/phrase layers, local ASR source-to-global timing proposals, manual approximate phrase-to-word splitting, per-layer interval split/delete/search",
-    "manual_video": "single local file import; full-duration editable source clip; no creative agent"
+    "manual_video": "single local file import; full-duration editable source clip; no creative agent",
+    "motion_bank": {
+      "catalog": 50,
+      "native_layer_effects": 16,
+      "field": "bankMotion",
+      "capability_source": "workflow.py motion-bank returns native_types per entry",
+      "timing": "uniform word timing inside layer interval, not speech alignment",
+      "shared_engines": [
+        "preview",
+        "remotion",
+        "hyperframes"
+      ],
+      "storage": "local data/motion-bank/state.json preferences and last 100 plans"
+    }
   },
   "not_connected": [
     "sentence-wide per-word karaoke/highlight",

@@ -4,6 +4,7 @@ import {AbsoluteFill,Composition,Sequence,cancelRender,continueRender,delayRende
 import {Video} from '@remotion/media';
 import motion from '../motion.js';
 import layerStyles from '../layers.js';
+import bank from '../bank_motion.js';
 import {Img} from 'remotion';
 import '../motion.css';
 
@@ -21,7 +22,7 @@ const Caption=({clip,project,index})=>{
  return <div className={'caption '+(hook?'academy-hook':'')} data-motion={motion.mode(clip,project)} style={{position:'absolute',left:academy?'8%':'7%',right:'12%',fontFamily:'Brand',fontSize:(academy?(hook?88:68):78)*scale,fontWeight:academy?750:400,lineHeight:1.45,textAlign:'center',direction:'rtl',whiteSpace:'pre-wrap',overflowWrap:'anywhere',textShadow:'0 2px 8px #000,0 0 3px #000',...style}}>{clip.text}</div>;
 };
 
-const Layer=({layer,index,width,offset})=>{const frame=useCurrentFrame()+offset,{fps}=useVideoConfig();return <div style={{...layerStyles.style(layer,frame/fps,width),zIndex:10+index}}>{layer.type==='text'?layer.text:<Img src={staticFile(layer.src)} style={{width:'100%',display:'block'}}/>}</div>;};
+const Layer=({layer,index,width,offset})=>{const frame=useCurrentFrame()+offset,{fps}=useVideoConfig();return <div style={{...layerStyles.style(layer,frame/fps,width),zIndex:10+index}}>{layer.type==='text'?(bank.runs(layer,frame/fps)?.map((r,i)=><span key={i} style={r.style}>{r.text}</span>)??layer.text):<Img src={staticFile(layer.src)} style={{width:'100%',display:'block'}}/>}</div>;};
 
 const Timeline=(project)=>{
  const [handle]=useState(()=>delayRender('Loading local Arabic font'));
