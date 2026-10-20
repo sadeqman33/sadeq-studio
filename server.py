@@ -590,10 +590,10 @@ class H(BaseHTTPRequestHandler):
         try:
             path=unquote(urlparse(self.path).path); parts=path.strip('/').split('/')
             if path=='/api/motion-bank':return self.send_json(mb.public(DATA))
-            if len(parts)==3 and parts[:2]==['motion-bank','previews'] and re.fullmatch(r'(0[1-9]|[1-4][0-9]|50)\.mp4',parts[2]):return self.file(ROOT/'motion-bank/previews'/parts[2])
-            if len(parts)==3 and parts[:2]==['motion-bank','posters'] and re.fullmatch(r'(0[1-9]|[1-4][0-9]|50)\.jpg',parts[2]):return self.file(ROOT/'motion-bank/posters'/parts[2])
+            if len(parts)==3 and parts[:2]==['motion-bank','previews'] and re.fullmatch(r'(0[1-9]|[1-9][0-9]|100)\.mp4',parts[2]):return self.file(ROOT/'motion-bank/previews'/parts[2])
+            if len(parts)==3 and parts[:2]==['motion-bank','posters'] and re.fullmatch(r'(0[1-9]|[1-9][0-9]|100)\.jpg',parts[2]):return self.file(ROOT/'motion-bank/posters'/parts[2])
             if path=='/api/projects': return self.send_json([{'id':p['id'],'name':p['name'],'source':p['source'],'analysis_at':p['analysis_at']} for f in DATA.glob('*/project.json') for p in [read(f)]])
-            if path=='/api/health': return self.send_json({'studio_version':'0.19.0','motion_bank':{'catalog':50,'native_layers':16},'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'cutout':co.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
+            if path=='/api/health': return self.send_json({'studio_version':json.loads((ROOT/'plugin.json').read_text())['version'],'motion_bank':{'catalog':len(mb.catalog()),'native_layers':len(mb.SUPPORTED)},'codex':bool(CODEX),'ffmpeg':bool(FFMPEG),'font':FONT.exists(),'hyperframes':hf.ready(),'remotion':rm.ready(),'cutout':co.ready(),'transcription':Path(os.environ.get('SADEQ_ASR_PYTHON',str(ROOT/'.venv-asr/bin/python'))).exists()})
             if len(parts)==4 and parts[:2]==['api','timeline-media']:
                 p=project(parts[2]);q=parse_qs(urlparse(self.path).query);kind=q.get('kind',['video'])[0]
                 if kind not in ['video','voice']:raise ValueError('نوع معاينة غير صالح')

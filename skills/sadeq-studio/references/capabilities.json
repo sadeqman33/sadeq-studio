@@ -87,7 +87,7 @@
     "captions": "editable word/phrase layers, local ASR source-to-global timing proposals, manual approximate phrase-to-word splitting, per-layer interval split/delete/search",
     "manual_video": "single local file import; full-duration editable source clip; no creative agent",
     "motion_bank": {
-      "catalog": 50,
+      "catalog": 100,
       "native_layer_effects": 16,
       "field": "bankMotion",
       "capability_source": "workflow.py motion-bank returns native_types per entry",

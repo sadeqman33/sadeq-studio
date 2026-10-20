@@ -233,3 +233,8 @@ The timeline's **بنك الحركات** opens 50 locally stored, numbered refer
 Sixteen native Studio adaptations are applicable to selected unlocked text layers; six also support images/icons. Use **جرّب حركة Studio** for the actual implementation preview and **طبّق على المحدد** to apply. Existing positions, sizes, fonts and text are retained; the operation uses normal draft/undo/save. Preview and both advanced export engines share bank_motion.js. Reference demonstrations are separate from native output. Camera, scene transitions, complex cards and edit rules remain planning references, clearly labeled in the UI; they are not silently mapped to a different effect. Word timing is uniform within a layer, not automatic speech alignment.
 
 Agent interface: workflow.py motion-bank, motion-preferences and motion-plan. See skills/sadeq-studio/references/motion-bank.md.
+
+
+### 0.19.2 — expanded motion references
+
+The local motion bank now includes 100 official v6.0.1 reference demonstrations and posters. The 16 existing native layer effects remain the executable set; 3D, speaker-mask and complex scene references are explicitly labeled in the gallery. Agent guidance now connects the requested feeling to restrained or emphasized moments and checks complete speech, Arabic readability and actual output before delivery. No project data is bundled. See motion-bank/SOURCE.json for the pinned release and archive checksum.

@@ -20,8 +20,9 @@
   "workflow_origin": "Original Studio-specific production modes; Sadeq-authored Arabic product, Meta diversification and Iraqi review preferences; 16 packaged skills share actual runtime contracts.",
   "motion_bank": {
     "source": "https://github.com/majedphotos/video-ad-editor",
-    "commit": "cf39f0fb685dbcabac882907ff3ca66256feee35",
+    "commit": "974571749790aad5b0e2c79d5fa017e3da668165",
     "license": "MIT",
-    "included": "50-entry reference catalog and demonstration previews. Studio native layer adaptations written separately. See third-party/majed-motion-bank."
+    "included": "100-entry reference catalog and demonstration previews. 16 existing Studio native layer adaptations remain separately implemented. See third-party/majed-motion-bank.",
+    "release": "v6.0.1"
   }
 }

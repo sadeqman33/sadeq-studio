@@ -1,7 +1,8 @@
 {
-  "repository": "https://github.com/majedphotos/video-ad-editor",
-  "commit": "cf39f0fb685dbcabac882907ff3ca66256feee35",
+  "source": "https://github.com/majedphotos/video-ad-editor",
+  "release": "v6.0.1",
+  "commit": "974571749790aad5b0e2c79d5fa017e3da668165",
   "license": "MIT",
-  "files": "Catalog and demonstration previews only. Native Studio motion implementations are separate.",
-  "upstream_version": "4.5.0"
+  "archive_sha256": "9d3e30d056419d680c02b993d80234a0fb24bc355e447bedd79230d11415f47d",
+  "included": "100-entry catalog, demonstration previews and generated preview posters only. No upstream engine or production workflows."
 }
