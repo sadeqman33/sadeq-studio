@@ -57,9 +57,10 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--url',default='http://127.0.0.1:8794');sub=parser.add_subparsers(dest='action',required=True)
     sub.add_parser('projects')
     sub.add_parser('motion-bank')
+    sub.add_parser('voice-status')
     pref=sub.add_parser('motion-preferences');pref.add_argument('--revision',required=True,type=int);pref.add_argument('--on',nargs='*',default=[]);pref.add_argument('--off',nargs='*',default=[])
     mp=sub.add_parser('motion-plan');mp.add_argument('--project',required=True);mp.add_argument('--family',default='auto');mp.add_argument('--cue',action='append',default=[]);mp.add_argument('--native-only',action='store_true')
-    for name in ['context','assets','status','analyze','voice-script','export','works','open-work','new-work','speech-picks','cutout','import-image','import-video','transcribe','caption-suggest']:
+    for name in ['context','assets','status','analyze','voice-script','voice-generate','export','works','open-work','new-work','speech-picks','cutout','import-image','import-video','transcribe','caption-suggest']:
         cmd=sub.add_parser(name);cmd.add_argument('--project',required=True)
         if name in ['context','analyze']:cmd.add_argument('--asset',action='append',default=[])
         if name=='import-video':cmd.add_argument('--file',type=Path,required=True)
@@ -76,7 +77,8 @@ def main(argv=None):
         if name=='new-work':cmd.add_argument('--title',default='فيديو جديد')
     submit=sub.add_parser('submit');submit.add_argument('--plan-file',type=Path,required=True);submit.add_argument('--render',action='store_true')
     args=parser.parse_args(argv);client=StudioClient(args.url)
-    if args.action=='projects':result=client.call('/api/projects')
+    if args.action=='voice-status':result=client.call('/api/voicestudio')
+    elif args.action=='projects':result=client.call('/api/projects')
     elif args.action=='motion-bank':result=client.call('/api/motion-bank')
     elif args.action=='motion-preferences':result=client.call('/api/motion-bank',{'action':'preferences','revision':args.revision,'on':args.on,'off':args.off})
     elif args.action=='motion-plan':
@@ -121,6 +123,8 @@ def main(argv=None):
         elif args.action=='analyze':
             if not args.all and not args.asset:raise ValueError('حدد فيديوات التحليل أو --all بوضوح')
             result=client.call('/api/analyze',{'id':pid,'assets':args.asset,'all':args.all})
+        elif args.action=='voice-generate':
+            c=client.context(pid,[]);result=client.call('/api/voiceover-generate',{'id':pid,'work_id':c['active_work_id'],'base_fingerprint':c['base_fingerprint']})
         elif args.action=='voice-script':result=client.call('/api/voiceover-script',{'id':pid,'request':args.brief_file.read_text()})
         elif args.action=='export':
             p=client.call('/api/project/'+pid)['project'];result=client.call('/api/export',{'id':pid,'work_id':p.get('active_work_id')})

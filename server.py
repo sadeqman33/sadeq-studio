@@ -10,6 +10,7 @@ import remotion_bridge as rm
 import speech_edit as se
 import cutout as co
 import voiceover as vo
+import voicestudio_bridge as vs
 import typography as typo
 import layers as ly
 import motion_bank as mb
@@ -398,7 +399,7 @@ def prepare_voiceover(pid,request,j):
     with LOCK:
         p=project(pid); history(p); v=vo.settings(p); v['text']=raw['text']; v['direction']=raw['direction']; p['voiceover']=vo.settings(p,v)
         p['voiceover_script_notes']=[str(s)[:600] for s in raw['uncertainties'][:12]]; save(p)
-    j['completion_message']='نص التعليق جاهز للمراجعة والنسخ إلى لهجاتي ✅'
+    j['completion_message']='نص التعليق جاهز للمراجعة والتوليد عبر VoiceStudio ✅'
 
 def import_voiceover(pid,payload,j):
     j['message']='أفحص ملف الصوت وأجهّزه للتايم لاين…'
@@ -408,6 +409,22 @@ def import_voiceover(pid,payload,j):
         v=vo.settings(p); v.update(asset=asset['id'],enabled=True,trimStart=0,trimEnd=asset['duration'],offset=0)
         p['voiceover']=vo.settings(p,v); save(p)
     j['completion_message']='التعليق الصوتي جاهز للتعديل والمعاينة ✅'
+
+def generate_voiceover(pid,spec,j):
+    j['message']='VoiceStudio يولّد التعليق محلياً؛ أول تشغيل يحتاج تحميل الموديل بالذاكرة…'
+    payload,provenance=vs.generate(spec['text'],spec['voice'],spec['direction'])
+    asset=vo.import_audio(payload,DATA/pid,FFPROBE,FFMPEG,command)
+    asset.update(source='local_generation',provider_hint='voicestudio',generation=provenance)
+    with LOCK:
+        p=project(pid)
+        if p.get('active_work_id')!=spec['work_id'] or edit_fingerprint(p)!=spec['base_fingerprint']:
+            j['generated_path']=asset['path']
+            raise ValueError('المسودة تغيّرت أثناء التوليد؛ الصوت محفوظ محلياً وما غيّرنا التايم لاين: '+asset['path'])
+        history(p);p.setdefault('voiceover_assets',[]).append(asset)
+        v=vo.settings(p);v.update(asset=asset['id'],enabled=True,trimStart=0,trimEnd=asset['duration'])
+        p['voiceover']=vo.settings(p,v);save(p)
+    j['completion_message']='التعليق جاهز من VoiceStudio؛ اسمعه وعدّل التوقيت قبل التصدير ✅'
+
 
 def prepare_cutout(p,d):
     if d.get('work_id')!=p.get('active_work_id') or d.get('base_fingerprint')!=edit_fingerprint(p):raise ValueError('المسودة تغيّرت؛ احفظها وافتح المقطع من جديد')
@@ -589,6 +606,7 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             path=unquote(urlparse(self.path).path); parts=path.strip('/').split('/')
+            if path=='/api/voicestudio':return self.send_json(vs.status())
             if path=='/api/motion-bank':return self.send_json(mb.public(DATA))
             if len(parts)==3 and parts[:2]==['motion-bank','previews'] and re.fullmatch(r'(0[1-9]|[1-9][0-9]|100)\.mp4',parts[2]):return self.file(ROOT/'motion-bank/previews'/parts[2])
             if len(parts)==3 and parts[:2]==['motion-bank','posters'] and re.fullmatch(r'(0[1-9]|[1-9][0-9]|100)\.jpg',parts[2]):return self.file(ROOT/'motion-bank/posters'/parts[2])
@@ -710,6 +728,15 @@ class H(BaseHTTPRequestHandler):
                 with LOCK:
                     p=project(pid);spec=prepare_cutout(p,d)
                     return self.send_json(run_job(pid,'cutout',lambda j:apply_cutout(pid,spec,j)))
+            if path=='/api/voiceover-generate':
+                with LOCK:
+                    p=project(pid)
+                    if d.get('work_id')!=p.get('active_work_id') or d.get('base_fingerprint')!=edit_fingerprint(p):raise ValueError('المسودة تغيّرت؛ احفظها قبل توليد التعليق')
+                    v=vo.settings(p)
+                    direction='\n'.join(x for x in [v['voice'],('Requested dialect: '+v['dialect']) if v['dialect'] else '',v['direction']] if x)
+                    spec={'work_id':p.get('active_work_id'),'base_fingerprint':edit_fingerprint(p),'text':v['text'],'direction':direction,'voice':v['voiceProfile']}
+                    if not spec['text'].strip() or len(spec['text'])>4096:raise ValueError('نص التوليد لازم يكون من 1 إلى 4096 حرف')
+                    return self.send_json(run_job(pid,'voiceover-generate',lambda j:generate_voiceover(pid,spec,j)))
             if path=='/api/voiceover-script': return self.send_json(run_job(pid,'voiceover-script',lambda j:prepare_voiceover(pid,str(d.get('request',''))[:2000],j)))
             if path=='/api/voiceover-import': return self.send_json(run_job(pid,'voiceover-import',lambda j:import_voiceover(pid,d,j)))
             if path=='/api/analyze':

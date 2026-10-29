@@ -30,7 +30,7 @@ When the user wants to choose options and launch the agent inside Studio, open t
 | Distinct Meta concepts or testing | [meta-ads-diversity](../meta-ads-diversity/SKILL.md) |
 | Iraqi audience/hook review or outcome learning | [iraqi-video-review](../iraqi-video-review/SKILL.md) |
 | Build/revise the exact independent timeline | [timeline-edit](../timeline-edit/SKILL.md) |
-| Voice-over/Lahajati | [voiceover](../voiceover/SKILL.md) |
+| Voice-over/VoiceStudio | [voiceover](../voiceover/SKILL.md) |
 | Requested MP4 and delivery checks | [export-video](../export-video/SKILL.md) |
 
 The normal path is saved identity → current source evidence → coherent idea/takes → short accurate copy with independently editable text/image/icon layers and shot-specific placement → independent editable work → requested render → manual finishing. Select applicable skills; don't load every mode or force advertising onto an emotional/noncommercial film. Read [styles.md](references/styles.md) and [capabilities.json](references/capabilities.json) as needed. These are shared instructions, not permission to invoke missing tools.

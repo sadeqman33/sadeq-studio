@@ -24,5 +24,12 @@
     "license": "MIT",
     "included": "100-entry reference catalog and demonstration previews. 16 existing Studio native layer adaptations remain separately implemented. See third-party/majed-motion-bank.",
     "release": "v6.0.1"
+  },
+  "voice_service": {
+    "repository": "https://github.com/debpalash/VoiceStudio",
+    "version": "0.5.7",
+    "integration": "Independent localhost REST service; no VoiceStudio application code or model weights bundled",
+    "model": "mlx-community/VoxCPM2-8bit",
+    "model_revision": "d52725898a0675703f7f9ddc5a4d1a3cdbb99032"
   }
 }

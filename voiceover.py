@@ -1,14 +1,13 @@
 """Local voice-over assets, editable timing and offline export mixing.
 
-Lahajati's public API contract has not been verified. No network requests,
-credentials or automatic generation are implemented here.
+Generation uses the separate local VoiceStudio bridge. Mixing and imports stay local.
 """
 import base64, binascii, hashlib, json, math, subprocess, time, uuid
 from pathlib import Path
 
 MAX_BYTES=20*1024*1024
 MAX_SECONDS=600
-DEFAULT={'text':'','dialect':'عراقية','voice':'','direction':'','enabled':False,
+DEFAULT={'text':'','dialect':'عراقية','voice':'','voiceProfile':'default','direction':'','enabled':False,
          'asset':None,'trimStart':0,'trimEnd':0,'offset':0,'gain':1,'originalGain':1}
 SCHEMA={'type':'object','properties':{'text':{'type':'string'},'direction':{'type':'string'},'uncertainties':{'type':'array','items':{'type':'string'}}},'required':['text','direction','uncertainties'],'additionalProperties':False}
 
@@ -16,7 +15,7 @@ def settings(p,raw=None):
     raw=p.get('voiceover',{}) if raw is None else raw
     if not isinstance(raw,dict): raise ValueError('إعدادات التعليق الصوتي غير صالحة')
     out={**DEFAULT,**{k:v for k,v in raw.items() if k in DEFAULT}}
-    for k,limit in [('text',6000),('dialect',120),('voice',160),('direction',1200)]:
+    for k,limit in [('text',6000),('dialect',120),('voice',160),('voiceProfile',160),('direction',1200)]:
         if not isinstance(out[k],str) or len(out[k])>limit: raise ValueError('نص أو إعداد التعليق طويل أو غير صالح')
     if not isinstance(out['enabled'],bool): raise ValueError('اختيار التعليق الصوتي غير صالح')
     for k,limit in [('trimStart',MAX_SECONDS),('trimEnd',MAX_SECONDS),('offset',MAX_SECONDS),('gain',1),('originalGain',1)]:
@@ -68,7 +67,7 @@ def import_audio(payload,folder,ffprobe,ffmpeg,command):
         raise
     return {'id':asset_id,'name':name,'path':str(target),'duration':duration,
             'sha256':hashlib.sha256(target.read_bytes()).hexdigest(),'at':time.time(),
-            'source':'manual_import','provider_hint':'lahajati','kind':'music' if payload.get('kind')=='music' else 'voiceover'}
+            'source':'manual_import','provider_hint':'local_file','kind':'music' if payload.get('kind')=='music' else 'voiceover'}
 
 def mix_export(p,out,total,ffmpeg,command,j,has_audio=True):
     selected=active(p)

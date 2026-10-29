@@ -132,7 +132,7 @@ The plugin contains 16 discoverable skills. The main skill routes a request thro
 
 Shared references cover what to extract from footage, style precedence, the six text presets, global independent layers, legacy relative caption timing, source/identity/work conflict tokens, manual finishing and observable export review. Saved brand memory/private approved style notes remain local and are read at execution time. User-authored Arabic/Meta/Iraqi preferences are incorporated into the package; production modes have original Studio-specific instructions, without copying the external plugin's separate engine/scripts.
 
-The standard supported path is real source footage → saved identity/evidence → coherent source trims → editable timed text/image/icon layers → independent editable work → MP4. Mode skills explicitly identify limits: generated 3D/collage scenes, sentence-wide karaoke highlighting, multicamera/face tracking, a native DaVinci bridge and an automatic Lahajati API are not connected. Imported cover art can be a timed image layer; automatic cover generation/full-frame insertion is not connected. Including an instruction skill does not create those renderer features.
+The standard supported path is real source footage → saved identity/evidence → coherent source trims → editable timed text/image/icon layers → independent editable work → MP4. Mode skills explicitly identify limits: generated 3D/collage scenes, sentence-wide karaoke highlighting, multicamera/face tracking, a native DaVinci bridge and remote voice services are not connected. Imported cover art can be a timed image layer; automatic cover generation/full-frame insertion is not connected. Including an instruction skill does not create those renderer features.
 
 The **calling chat** is the creative agent. Useful CLI commands:
 
@@ -149,7 +149,7 @@ A new agent plan creates a new work. To revise an existing video, open its work 
 
 ## Voice-over
 
-Lahajati is currently a manual workflow: prepare copy, generate and download audio at https://lahajati.ai/en, then import it into the editor. Automatic Lahajati generation/API integration is not connected. Editing the written script does not alter an imported recording.
+VoiceStudio is the narration provider. Run its separate local app, select MLX-Audio with the installed VoxCPM2-8bit model, then use Check VoiceStudio → Generate in Studio. Generation validates the current work and appends a new editable audio asset; existing recordings and source gain remain intact. Editing script text requires a new generation to change the audio. No hosted-provider fallback is used. See skills/sadeq-studio/references/voicestudio.md for setup and contracts.
 
 ## Current limits
 

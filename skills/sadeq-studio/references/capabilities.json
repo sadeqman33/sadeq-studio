@@ -33,7 +33,7 @@
       "blur",
       "solid color"
     ],
-    "voiceover": "manual Lahajati generation/download/import; local track controls",
+    "voiceover": "local VoiceStudio HTTP generation with installed VoxCPM2-8bit, saved voice profiles, guarded independent-work attachment, audio audition/import and local track controls",
     "layers": {
       "types": [
         "text",
@@ -107,7 +107,6 @@
     "automatic beat effects/detection",
     "multicamera synchronization/face tracking",
     "DaVinci scripting bridge",
-    "automatic Lahajati API",
     "transparent background/video replacement",
     "cloud access to local SSD",
     "optical-flow interpolation",
